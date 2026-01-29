@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PCS Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-gray: #8E8E93;
+            --ios-text: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000; /* Dark frame */
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .iphone-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 430px; /* iPhone Pro Max width */
+            background: var(--ios-bg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Dynamic Island Area */
+        .status-bar {
+            height: 54px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 25px;
+            font-weight: 600;
+            font-size: 16px;
+            z-index: 10;
+        }
+        
+        .dynamic-island {
+            width: 125px;
+            height: 35px;
+            background: black;
+            border-radius: 20px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 11px;
+        }
+
+        /* Content */
+        .content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+
+        .welcome-text {
+            font-size: 16px;
+            color: var(--ios-gray);
+            margin-bottom: 5px;
+            opacity: 0; /* JS Animation start */
+        }
+
+        .user-name {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--ios-text);
+            opacity: 0; /* JS Animation start */
+        }
+
+        .card {
+            background: var(--ios-card);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .visits-counter {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .visits-number {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--ios-blue);
+            margin: 10px 0;
+        }
+
+        .visits-label {
+            color: var(--ios-gray);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .action-btn {
+            background: var(--ios-card);
+            border: none;
+            border-radius: 18px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-icon {
+            font-size: 24px;
+            color: var(--ios-blue);
+            background: rgba(0, 122, 255, 0.1);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ios-text);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 85px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding-top: 15px;
+            z-index: 100;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--ios-gray);
+            font-size: 10px;
+            font-weight: 500;
+            text-decoration: none;
+            width: 60px;
+            position: relative;
+            overflow: hidden; /* For ripple */
+        }
+
+        .nav-item.active {
+            color: var(--ios-blue);
+        }
+
+        .nav-item i {
+            font-size: 24px;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 122, 255, 0.2);
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+        }
+
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Home Indicator */
+        .home-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 135px;
+            height: 5px;
+            background: #000;
+            border-radius: 3px;
+            opacity: 0.2;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="iphone-frame">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="dynamic-island"></div>
+            <div class="right-icons">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi" style="margin: 0 5px;"></i>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="header">
+                <div class="welcome-text">Bienvenido de nuevo,</div>
+                <div class="user-name">Diego</div>
+            </div>
+
+            <!-- Visits Card -->
+            <div class="card visits-counter">
+                <div class="visits-label">Visitas Activas</div>
+                <div class="visits-number">0</div>
+                <div class="visits-label">Total hoy</div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="action-grid">
+                <button class="action-btn" onclick="window.location.href='Guest/index.html'">
+                    <div class="action-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <span class="action-text">Nueva Visita</span>
+                </button>
+                <button class="action-btn">
+                    <div class="action-icon" style="color: #34C759; background: rgba(52, 199, 89, 0.1);">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <span class="action-text">Historial</span>
+                </button>
+                <button class="action-btn">
+                    <div class="action-icon" style="color: #FF9500; background: rgba(255, 149, 0, 0.1);">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <span class="action-text">Mi Código</span>
+                </button>
+                <button class="action-btn">
+                    <div class="action-icon" style="color: #AF52DE; background: rgba(175, 82, 222, 0.1);">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <span class="action-text">Ajustes</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-bell"></i>
+                <span>Alertas</span>
+            </a>
+            <a href="#" class="nav-item">
+                <i class="fas fa-user"></i>
+                <span>Perfil</span>
+            </a>
+            <div class="home-indicator"></div>
+        </nav>
+    </div>
+
+    <script>
+        // Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            const tl = gsap.timeline();
+
+            // Header Text Animation
+            tl.to('.welcome-text', { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' })
+              .to('.user-name', { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }, "-=0.4");
+
+            // Cards Stagger
+            tl.to('.card, .action-btn', { 
+                opacity: 1, 
+                y: 0, 
+                duration: 0.6, 
+                stagger: 0.1, 
+                ease: 'power2.out' 
+            }, "-=0.2");
+
+            // Nav Interaction
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    
+                    // Simple Ripple
+                    const circle = document.createElement('span');
+                    const diameter = Math.max(this.clientWidth, this.clientHeight);
+                    const radius = diameter / 2;
+
+                    circle.style.width = circle.style.height = `${diameter}px`;
+                    circle.style.left = `${e.clientX - this.offsetLeft}px`; // Approximate for fixed nav
+                    circle.style.top = `${e.clientY - this.getBoundingClientRect().top}px`;
+                    circle.classList.add('ripple');
+
+                    const ripple = this.getElementsByClassName('ripple')[0];
+
+                    if (ripple) {
+                        ripple.remove();
+                    }
+
+                    this.appendChild(circle);
+
+                    // Update Active State
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

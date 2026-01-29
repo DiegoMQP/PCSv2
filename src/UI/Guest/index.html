@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nueva Visita</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-text: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .iphone-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 430px;
+            background: var(--ios-bg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .nav {
+            padding: 50px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(242, 242, 247, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        .nav h1 {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .cancel-btn {
+            color: var(--ios-blue);
+            font-size: 17px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .form-section {
+            background: var(--ios-card);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .input-row {
+            padding: 12px 20px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-row:last-child {
+            border-bottom: none;
+        }
+
+        .input-row label {
+            width: 100px;
+            font-size: 17px;
+        }
+
+        .input-row input {
+            flex: 1;
+            border: none;
+            font-size: 17px;
+            text-align: right;
+            outline: none;
+        }
+
+        /* Camera / Scan style */
+        .scan-helper {
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            background: var(--ios-card);
+        }
+
+        .scan-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: #E5E5EA;
+            color: var(--ios-blue);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .duration-selector {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--ios-card);
+        }
+
+        .time-chip {
+            padding: 8px;
+            text-align: center;
+            background: #F2F2F7;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .time-chip.active {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        /* Camera Overlay */
+        .camera-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+        }
+
+        .camera-view {
+            flex: 1;
+            position: relative;
+            background: #222; /* fake cam feed */
+        }
+
+        .laser-scan {
+            position: absolute;
+            top: 30%;
+            left: 10%;
+            right: 10%;
+            height: 200px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+        }
+
+        .laser-line {
+            height: 2px;
+            background: red;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            animation: scan 2s infinite linear;
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .camera-controls {
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            padding-bottom: 20px;
+        }
+
+        .shutter-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 5px solid white;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        /* Result Code */
+        .code-display {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .access-code {
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: 5px;
+            color: var(--ios-text);
+            margin: 20px 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="iphone-frame">
+        <div class="nav">
+            <a href="../index.html" class="cancel-btn">Cancelar</a>
+            <h1>Visitante</h1>
+            <span style="width: 60px"></span> <!-- Spacer -->
+        </div>
+
+        <div class="content" id="formContent">
+            
+            <p style="color: grey; font-size: 13px; margin-bottom: 10px; padding-left: 10px;">DATOS DEL INVITADO</p>
+            <div class="form-section">
+                <div class="input-row">
+                    <label>Nombre</label>
+                    <input type="text" placeholder="Obligatorio">
+                </div>
+                <div class="input-row">
+                    <label>Placa/Matrícula</label>
+                    <input type="text" id="plateInput" placeholder="Opcional" style="text-transform: uppercase;">
+                </div>
+                <div class="scan-helper">
+                    <button class="scan-btn" onclick="openCamera()">
+                        <i class="fas fa-camera"></i> Escanear
+                    </button>
+                    <button class="scan-btn">
+                        <i class="fas fa-image"></i> Subir Foto
+                    </button>
+                </div>
+            </div>
+
+            <p style="color: grey; font-size: 13px; margin-bottom: 10px; padding-left: 10px;">VALIDEZ DEL ACCESO</p>
+            <div class="form-section">
+                <div class="duration-selector">
+                    <div class="time-chip" onclick="selectDuration(this, '30m')">30 min</div>
+                    <div class="time-chip active" onclick="selectDuration(this, '4h')">4 hrs</div>
+                    <div class="time-chip" onclick="selectDuration(this, '12h')">12 hrs</div>
+                    <div class="time-chip" onclick="selectDuration(this, '24h')">24 hrs</div>
+                </div>
+                <div class="input-row">
+                    <label>Otro</label>
+                    <input type="number" placeholder="Horas">
+                </div>
+            </div>
+
+            <button class="generate-btn" onclick="generateCode()">Generar Código de Acceso</button>
+        </div>
+
+        <!-- Success Screen -->
+        <div class="code-display" id="successContent">
+            <div style="width: 80px; height: 80px; background: #34C759; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: white; font-size: 40px;">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 style="margin-top: 20px;">Acceso Creado</h2>
+            <div class="access-code">8842</div>
+            <p>Comparte este código con tu visita</p>
+            
+            <button class="generate-btn" style="margin-top: 40px;" onclick="window.location.href='../index.html'">
+                Volver al Inicio
+            </button>
+            <button class="generate-btn" style="background: #E5E5EA; color: var(--ios-blue); margin-top: 10px;">
+                <i class="fas fa-share-alt"></i> Compartir
+            </button>
+        </div>
+
+        <!-- Camera Overlay -->
+        <div class="camera-overlay" id="camOverlay">
+            <div class="nav" style="background: black; color: white;">
+                <span class="cancel-btn" onclick="closeCamera()">Cancelar</span>
+            </div>
+            <div class="camera-view">
+                <div class="laser-scan">
+                    <div class="laser-line"></div>
+                </div>
+                <div style="position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: white; font-weight: 600;">
+                    Apunta a la matrícula del vehículo
+                </div>
+            </div>
+            <div class="camera-controls">
+                <div class="shutter-btn" onclick="capturePhoto()"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectDuration(el, val) {
+            document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        function generateCode() {
+            // Animate transition
+            const form = document.getElementById('formContent');
+            const success = document.getElementById('successContent');
+
+            gsap.to(form, { opacity: 0, scale: 0.95, duration: 0.3, onComplete: () => {
+                form.style.display = 'none';
+                success.style.display = 'block';
+                success.style.opacity = 0;
+                
+                // Generate random 4 digit
+                const code = Math.floor(1000 + Math.random() * 9000);
+                document.querySelector('.access-code').innerText = code;
+
+                gsap.fromTo(success, 
+                    { opacity: 0, scale: 0.9 }, 
+                    { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(1.7)" }
+                );
+            }});
+        }
+
+        // Camera Simulation
+        function openCamera() {
+            const cam = document.getElementById('camOverlay');
+            cam.style.display = 'flex';
+            gsap.fromTo(cam, {y: '100%'}, {y: '0%', duration: 0.4, ease: 'power2.out'});
+        }
+
+        function closeCamera() {
+            const cam = document.getElementById('camOverlay');
+            gsap.to(cam, {y: '100%', duration: 0.3, onComplete: () => {
+                cam.style.display = 'none';
+            }});
+        }
+
+        function capturePhoto() {
+            // Flash effect
+            const cam = document.getElementById('camOverlay');
+            gsap.to(cam, { backgroundColor: 'white', duration: 0.1, yoyo: true, repeat: 1 });
+            
+            setTimeout(() => {
+                closeCamera();
+                // Simulate OCR
+                document.getElementById('plateInput').value = "XYZ-987";
+                document.getElementById('plateInput').style.color = "#34C759"; // Green to show success
+            }, 500);
+        }
+    </script>
+</body>
+</html>

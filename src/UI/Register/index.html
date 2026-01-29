@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PCS Registro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-text: #000000;
+            --ios-gray: #8E8E93;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .iphone-frame {
+            width: 100%;
+            height: 100%;
+            max-width: 430px;
+            background: var(--ios-bg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header-nav {
+            padding: 60px 20px 20px 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-btn {
+            color: var(--ios-blue);
+            font-size: 17px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .progress-container {
+            padding: 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: #D1D1D6;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--ios-blue);
+            width: 33%;
+            transition: width 0.4s ease;
+        }
+
+        .step-title {
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .step-title h2 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .step-container {
+            flex: 1;
+            padding: 0 20px;
+            position: relative;
+        }
+
+        .step {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 0;
+            padding: 0 20px;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(50px);
+            transition: all 0.4s ease;
+        }
+
+        .step.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateX(0);
+        }
+
+        .step.prev {
+            transform: translateX(-50px);
+            opacity: 0;
+        }
+
+        .input-group {
+            background: var(--ios-card);
+            border-radius: 12px;
+            padding: 10px 0;
+            margin-bottom: 20px;
+        }
+
+        .input-row {
+            padding: 10px 20px;
+            border-bottom: 0.5px solid rgba(0,0,0,0.1);
+        }
+
+        .input-row:last-child {
+            border-bottom: none;
+        }
+
+        input {
+            width: 100%;
+            border: none;
+            font-size: 17px;
+            outline: none;
+            padding: 5px 0;
+        }
+
+        /* Password Strength */
+        .strength-meter {
+            height: 4px;
+            background: #E5E5EA;
+            margin-top: 10px;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .next-btn {
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            width: calc(100% - 40px);
+            height: 56px;
+            border-radius: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            margin: 20px;
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="iphone-frame">
+        <div class="header-nav">
+            <a href="../Login/index.html" class="back-btn"><i class="fas fa-chevron-left"></i> Atrás</a>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+        </div>
+
+        <div class="step-title">
+            <h2 id="stepTitle">Datos Personales</h2>
+        </div>
+
+        <div class="step-container">
+            <!-- Step 1: Personal -->
+            <div class="step active" id="step1">
+                <div class="input-group">
+                    <div class="input-row">
+                        <input type="text" placeholder="Nombre completo">
+                    </div>
+                    <div class="input-row">
+                        <input type="tel" placeholder="Teléfono Móvil">
+                    </div>
+                    <div class="input-row">
+                        <input type="email" placeholder="Correo Electrónico">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Security -->
+            <div class="step" id="step2">
+                <div class="input-group">
+                    <div class="input-row">
+                        <input type="password" id="pwd" placeholder="Contraseña" oninput="checkStrength()">
+                    </div>
+                    <div class="input-row">
+                        <input type="password" placeholder="Confirmar contraseña">
+                    </div>
+                </div>
+                <div class="strength-meter" id="strengthMeter">
+                    <div class="strength-fill" id="strengthFill"></div>
+                </div>
+                <p style="font-size: 12px; color: grey; margin-top: 10px;">La contraseña debe tener al menos 8 caracteres.</p>
+            </div>
+
+            <!-- Step 3: Condo Code -->
+            <div class="step" id="step3">
+                <p style="margin-bottom: 20px; color: var(--ios-gray);">Ingresa el código único proporcionado por tu administración.</p>
+                <div class="input-group">
+                    <div class="input-row">
+                        <input type="text" placeholder="Código de Fraccionamiento (Ej. PCS-2024)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="next-btn" id="actionBtn" onclick="nextStep()">Continuar</button>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        const totalSteps = 3;
+
+        function nextStep() {
+            if (currentStep < totalSteps) {
+                // Animate Out Current
+                gsap.to(`#step${currentStep}`, { 
+                    x: -50, 
+                    opacity: 0, 
+                    duration: 0.3, 
+                    onComplete: () => {
+                        document.getElementById(`step${currentStep - 1}`).classList.remove('active'); // fix index logic in memory
+                        // Logic simplified below
+                    }
+                });
+                
+                // Logic update
+                document.getElementById(`step${currentStep}`).classList.remove('active');
+                document.getElementById(`step${currentStep}`).classList.add('prev');
+
+                currentStep++;
+
+                // Animate In Next
+                const nextStepEl = document.getElementById(`step${currentStep}`);
+                nextStepEl.classList.add('active');
+                gsap.fromTo(nextStepEl, 
+                    { x: 50, opacity: 0 }, 
+                    { x: 0, opacity: 1, duration: 0.3 }
+                );
+
+                // Update UI
+                updateUI();
+            } else {
+                // Finish
+                // Simulate loading then redirect
+                const btn = document.getElementById('actionBtn');
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
+                setTimeout(() => {
+                    window.location.href = '../index.html';
+                }, 1500);
+            }
+        }
+
+        function updateUI() {
+            // Update Progress
+            const percentage = (currentStep / totalSteps) * 100;
+            document.getElementById('progress').style.width = `${percentage}%`;
+
+            // Update Titles
+            const titles = ["", "Datos Personales", "Seguridad", "Vinculación"];
+            // Simple text transition
+            const titleEl = document.getElementById('stepTitle');
+            gsap.to(titleEl, { opacity: 0, duration: 0.2, onComplete: () => {
+                titleEl.textContent = titles[currentStep];
+                gsap.to(titleEl, { opacity: 1, duration: 0.2 });
+            }});
+
+            // Button Text
+            const btn = document.getElementById('actionBtn');
+            if (currentStep === totalSteps) {
+                btn.innerText = "Finalizar Registro";
+            }
+        }
+
+        function checkStrength() {
+            const pwd = document.getElementById('pwd').value;
+            const meter = document.getElementById('strengthMeter');
+            const fill = document.getElementById('strengthFill');
+            
+            if (pwd.length > 0) meter.style.display = 'block';
+            
+            let strength = 0;
+            if (pwd.length > 5) strength += 30;
+            if (pwd.length > 8) strength += 30;
+            if (/[A-Z]/.test(pwd)) strength += 20;
+            if (/[0-9]/.test(pwd)) strength += 20;
+
+            fill.style.width = `${strength}%`;
+            
+            if (strength < 50) fill.style.backgroundColor = '#FF3B30'; // Red
+            else if (strength < 80) fill.style.backgroundColor = '#FF9500'; // Orange
+            else fill.style.backgroundColor = '#34C759'; // Green
+        }
+    </script>
+</body>
+</html>
