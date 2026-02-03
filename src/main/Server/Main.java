@@ -4,221 +4,197 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.UserRecord;
-import com.google.firebase.auth.UserRecord.CreateRequest;
 import com.google.firebase.cloud.FirestoreClient;
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.WriteResult;
+
+import io.javalin.Javalin;
+import io.javalin.http.Context;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
-import java.util.Scanner;
-import java.util.concurrent.ExecutionException;
 
 public class Main {
-
     private static Firestore db;
-    private static FirebaseAuth auth;
-    private static final String SERVICE_ACCOUNT_PATH = "src/main/Server/pcssec-c4bf5-firebase-adminsdk-fbsvc-3cc88fc220.json";
 
     public static void main(String[] args) {
+        // Initialize Firebase
         try {
-            System.out.println("Iniciando Sistema PCS...");
-            initializeFirebase();
-            
-            // Iniciar interfaz de consola para probar funcionalidades
-            runCLI();
-            
-        } catch (Exception e) {
-            System.err.println("Error en el sistema: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 
-    private static void initializeFirebase() throws IOException {
-        FileInputStream serviceAccount = new FileInputStream(SERVICE_ACCOUNT_PATH);
-
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+            InputStream serviceAccount = new FileInputStream("src/main/Server/pcssec-c4bf5-firebase-adminsdk-fbsvc-3cc88fc220.json");
+            GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
+            FirebaseOptions options = FirebaseOptions.builder()
+                .setCredentials(credentials)
                 .build();
-
-        if (FirebaseApp.getApps().isEmpty()) {
             FirebaseApp.initializeApp(options);
-            System.out.println("Firebase conectado exitosamente.");
+            db = FirestoreClient.getFirestore();
+            System.out.println("Firebase initialized successfully.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to initialize Firebase.");
+            return;
         }
+
+        // Initialize Web Server
+        Javalin app = Javalin.create(config -> {
+            config.plugins.enableCors(cors -> {
+                cors.add(it -> {
+                    it.anyHost();
+                });
+            });
+        }).start(7070);
+
+        // API Endpoints
+        app.get("/health", ctx -> ctx.status(200).result("OK"));
+        app.post("/register", Main::handleRegister);
+        app.post("/login", Main::handleLogin);
+        app.post("/codes", Main::handleSaveCode);
+        app.post("/guests", Main::handleCreateGuest);
         
-        db = FirestoreClient.getFirestore();
-        auth = FirebaseAuth.getInstance();
+        System.out.println("Server started on port 7070");
     }
 
-    private static void runCLI() {
-        Scanner scanner = new Scanner(System.in);
-        while (true) {
-            System.out.println("\n--- PANEL DE CONTROL PCS ---");
-            System.out.println("1. Registrar Usuario (SignUp)");
-            System.out.println("2. Simular Login (Verificar Usuario)");
-            System.out.println("3. Registrar Visitante y Generar Código");
-            System.out.println("4. Salir");
-            System.out.print("Seleccione una opción: ");
+    // Register Handler
+    private static void handleRegister(Context ctx) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = ctx.bodyAsClass(Map.class);
+        String username = body.get("username");
+        String password = body.get("password");
+        String location = body.get("location"); // New field
 
-            String option = scanner.nextLine();
+        if (username == null || password == null) {
+            ctx.status(400).result("Missing username or password");
+            return;
+        }
 
-            switch (option) {
-                case "1":
-                    handleSignup(scanner);
-                    break;
-                case "2":
-                    handleLoginCheck(scanner);
-                    break;
-                case "3":
-                    handleVisitorRegistration(scanner);
-                    break;
-                case "4":
-                    System.out.println("Cerrando sistema...");
-                    return;
-                default:
-                    System.out.println("Opción inválida.");
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
+        Map<String, Object> docData = new HashMap<>();
+        docData.put("username", username);
+        docData.put("password", hashedPassword);
+        if (location != null) docData.put("location", location);
+
+        try {
+            // Check if user exists
+             ApiFuture<QuerySnapshot> query = db.collection("users").whereEqualTo("username", username).get();
+             if (!query.get().isEmpty()) {
+                 ctx.status(409).result("User already exists");
+                 return;
+             }
+
+            ApiFuture<WriteResult> future = db.collection("users").document(username).set(docData);
+            future.get(); // wait for write
+            ctx.status(201).result("User created");
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(500).result("Error registering user");
+        }
+    }
+
+    // Login Handler
+    private static void handleLogin(Context ctx) {
+        @SuppressWarnings("unchecked")
+        Map<String, String> body = ctx.bodyAsClass(Map.class);
+        String username = body.get("username");
+        String password = body.get("password");
+
+        if (username == null || password == null) {
+            ctx.status(400).result("Missing username or password");
+            return;
+        }
+
+        try {
+            DocumentReference docRef = db.collection("users").document(username);
+            ApiFuture<com.google.cloud.firestore.DocumentSnapshot> future = docRef.get();
+            com.google.cloud.firestore.DocumentSnapshot document = future.get();
+
+            if (document.exists()) {
+                String storedHash = document.getString("password");
+                if (BCrypt.checkpw(password, storedHash)) {
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("username", username);
+                    response.put("message", "Login successful");
+                    // Add other fields if available in document, e.g. email, role
+                    ctx.status(200).json(response);
+                } else {
+                    ctx.status(401).result("Invalid credentials");
+                }
+            } else {
+                ctx.status(401).result("User not found");
             }
-        }
-    }
-
-    // --- AUTENTICACIÓN ---
-
-    private static void handleSignup(Scanner scanner) {
-        System.out.println("\n--- REGISTRO DE USUARIO ---");
-        System.out.print("Nombre completo: ");
-        String name = scanner.nextLine();
-        System.out.print("Correo electrónico: ");
-        String email = scanner.nextLine();
-        System.out.print("Contraseña: ");
-        String password = scanner.nextLine();
-        System.out.print("Código de Fraccionamiento: ");
-        String condoCode = scanner.nextLine();
-
-        try {
-            CreateRequest request = new CreateRequest()
-                    .setEmail(email)
-                    .setEmailVerified(false)
-                    .setPassword(password)
-                    .setDisplayName(name)
-                    .setDisabled(false);
-
-            UserRecord userRecord = auth.createUser(request);
-            System.out.println("Usuario creado exitosamente en Authentication: " + userRecord.getUid());
-
-            // Guardar datos adicionales en Firestore
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("uid", userRecord.getUid());
-            userData.put("name", name);
-            userData.put("email", email);
-            userData.put("condoCode", condoCode);
-            userData.put("role", "RESIDENT");
-            userData.put("createdAt", new Date());
-
-            db.collection("users").document(userRecord.getUid()).set(userData).get();
-            System.out.println("Perfil de usuario guardado en Firestore.");
-
         } catch (Exception e) {
-            System.err.println("Error al crear usuario: " + e.getMessage());
+            e.printStackTrace();
+            ctx.status(500).result("Error logging in");
         }
     }
 
-    private static void handleLoginCheck(Scanner scanner) {
-        System.out.println("\n--- VERIFICACIÓN DE USUARIO (Simulación Login) ---");
-        System.out.println("Nota: La validación de contraseña debe realizarse en el Cliente (App Móvil/Web).");
-        System.out.print("Ingrese correo para verificar existencia: ");
-        String email = scanner.nextLine();
-
-        try {
-            UserRecord userRecord = auth.getUserByEmail(email);
-            System.out.println("Usuario encontrado: " + userRecord.getDisplayName() + " (UID: " + userRecord.getUid() + ")");
-            // Aquí se consultaría Firestore para ver el código de fraccionamiento
-        } catch (Exception e) {
-            System.out.println("Usuario no encontrado o error: " + e.getMessage());
-        }
-    }
-
-    // --- VISITANTES Y CÓDIGOS ---
-
-    private static void handleVisitorRegistration(Scanner scanner) {
-        System.out.println("\n--- REGISTRO DE VISITANTE ---");
-        System.out.print("Nombre del Visitante: ");
-        String visitorName = scanner.nextLine();
-        System.out.print("Matrícula / Placa: ");
-        String plate = scanner.nextLine();
-
-        // Selección de duración
-        System.out.println("Seleccione duración:");
-        System.out.println("1. Minutos");
-        System.out.println("2. Horas");
-        System.out.println("3. Días");
-        System.out.println("4. Semanas");
-        System.out.println("5. Años");
-        System.out.print("Opción: ");
-        int typeInfo = Integer.parseInt(scanner.nextLine());
+    // Fractionation Codes Handler
+    private static void handleSaveCode(Context ctx) {
+        // Expected JSON: { "name": "...", "code": "...", "location": "...", "visitors": [...], "logs": [...] }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = ctx.bodyAsClass(Map.class);
+        String code = (String) body.get("code");
+        String name = (String) body.get("name");
+        String username = (String) body.get("username"); // Added username check
         
-        System.out.print("Ingrese la cantidad (ej. 5): ");
-        int amount = Integer.parseInt(scanner.nextLine());
-
-        Date expireDate = calculateExpiration(typeInfo, amount);
-        String code = generateAccessCode();
-
-        Map<String, Object> visitData = new HashMap<>();
-        visitData.put("visitorName", visitorName);
-        visitData.put("plate", plate);
-        visitData.put("accessCode", code);
-        visitData.put("expiresAt", expireDate);
-        visitData.put("createdAt", new Date());
-        visitData.put("active", true);
+        if (code == null || name == null) {
+             ctx.status(400).result("Missing code, name");
+             return;
+        }
 
         try {
-            // Guardar visita en Firestore
-            db.collection("visits").add(visitData).get();
-            System.out.println("Visita registrada exitosamente.");
-            System.out.println("===============================");
-            System.out.println("CÓDIGO DE ACCESO: " + code);
-            System.out.println("VÁLIDO HASTA: " + expireDate);
-            System.out.println("===============================");
-        } catch (InterruptedException | ExecutionException e) {
-            System.err.println("Error al guardar visita: " + e.getMessage());
+            // Add a timestamp for when this was saved
+            body.put("timestamp", System.currentTimeMillis());
+            if (username != null) body.put("host_username", username);
+            
+            // Assuming "codes" is the collection name for fractionation codes
+            ApiFuture<WriteResult> future = db.collection("fractionation_codes").document(code).set(body);
+            future.get();
+            ctx.status(201).result("Code saved successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(500).result("Error saving code");
         }
     }
 
-    private static String generateAccessCode() {
-        Random rand = new Random();
-        int code = 1000 + rand.nextInt(9000); // Código de 4 dígitos
-        return String.valueOf(code);
-    }
-
-    private static Date calculateExpiration(int type, int amount) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiresAt = now;
-
-        switch (type) {
-            case 1: // Minutos
-                expiresAt = now.plusMinutes(amount);
-                break;
-            case 2: // Horas
-                expiresAt = now.plusHours(amount);
-                break;
-            case 3: // Días
-                expiresAt = now.plusDays(amount);
-                break;
-            case 4: // Semanas
-                expiresAt = now.plusWeeks(amount);
-                break;
-            case 5: // Años
-                expiresAt = now.plusYears(amount);
-                break;
-            default:
-                expiresAt = now.plusHours(4); // Default 4 horas
+    // Guest Registration Handler
+    private static void handleCreateGuest(Context ctx) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = ctx.bodyAsClass(Map.class);
+        String visitorName = (String) body.get("visitor_name");
+        String hostUsername = (String) body.get("host_username");
+        
+        if (visitorName == null || hostUsername == null) {
+            ctx.status(400).result("Missing visitor name or host");
+            return;
         }
+        
+        try {
+           body.put("created_at", System.currentTimeMillis());
+           body.put("status", "SCHEDULED"); // Default status
 
-        return Date.from(expiresAt.atZone(ZoneId.systemDefault()).toInstant());
+           // We let Firestore generate the ID or use a UUID
+           ApiFuture<DocumentReference> future = db.collection("guests").add(body);
+           DocumentReference ref = future.get();
+           
+           ctx.status(201).result("Guest registered with ID: " + ref.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+            ctx.status(500).result("Error creating guest");
+        }
+    }
+    
+    // Helper for testing
+    public static String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+    
+    public static boolean checkPassword(String password, String hashed) {
+        return BCrypt.checkpw(password, hashed);
     }
 }
