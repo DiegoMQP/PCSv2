@@ -8,11 +8,12 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // Determine Base URL dynamically
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:7070';
+    if (kIsWeb) return 'http://127.0.0.1:7070';
     // 10.0.2.2 is for Android Emulator to access host localhost
     if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:7070';
     // For iOS Simulator and Desktop (Windows/Mac/Linux)
-    return 'http://localhost:7070';
+    // Using 127.0.0.1 instead of localhost avoids DNS resolution issues on Windows
+    return 'http://127.0.0.1:7070';
   }
   
   static final ApiService _instance = ApiService._internal();
@@ -23,7 +24,87 @@ class ApiService {
 
   ApiService._internal();
 
-  Future<Map<String, dynamic>> register(String username, String password, String location) async {
+  Future<bool> checkHealth() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/health')).timeout(const Duration(seconds: 2));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> checkPort() async {
+    try {
+        final uri = Uri.parse(baseUrl);
+        final socket = await Socket.connect(uri.host, uri.port, timeout: const Duration(seconds: 2));
+        socket.destroy();
+        return true;
+    } catch (_) {
+        return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyLocation(String code) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/verify-location?code=$code'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'success': false, 'message': 'Code invalid'};
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error'};
+    }
+  }
+
+  Future<List<dynamic>> getLogs(String username) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/logs?username=$username'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getAlerts() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/alerts'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getNotifications(String username) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/notifications?username=$username'));
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+  
+  Future<List<dynamic>> getCodes(String username) async {
+    try {
+        final response = await http.get(Uri.parse('$baseUrl/codes?username=$username'));
+        if (response.statusCode == 200) {
+            return jsonDecode(response.body);
+        }
+        return [];
+    } catch (e) {
+        return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> register(String username, String password, String location, String name) async {
     final url = Uri.parse('$baseUrl/register');
     try {
       final response = await http.post(
@@ -32,7 +113,8 @@ class ApiService {
         body: jsonEncode({
             'username': username, 
             'password': password,
-            'location': location
+            'location': location,
+            'name': name
         }),
       );
 

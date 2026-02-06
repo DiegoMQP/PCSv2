@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/register_screen.dart';
@@ -16,6 +17,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: const MyApp(),
     ),
@@ -27,55 +29,68 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PCS Mobile',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF2F2F7), // iOS Background
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF007AFF), // iOS Blue
-          primary: const Color(0xFF007AFF),
-          secondary: const Color(0xFF34C759), // iOS Green
-          error: const Color(0xFFFF3B30), // iOS Red
-          background: const Color(0xFFF2F2F7),
-          surface: Colors.white,
-        ),
-        textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF2F2F7),
-          elevation: 0,
-          centerTitle: true,
-          titleTextStyle: TextStyle(
-            color: Colors.black,
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Inter',
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'PCS Mobile',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.dark, 
+          darkTheme: ThemeData(
+             brightness: Brightness.dark,
+             useMaterial3: true,
+             scaffoldBackgroundColor: const Color(0xFF1C1C1E),
+             colorScheme: const ColorScheme.dark(
+                primary: Color(0xFF0A84FF),
+                surface: Color(0xFF2C2C2E),
+                background: Color(0xFF1C1C1E),
+                secondary: Color(0xFF32D74B),
+             ),
+             cardTheme: CardTheme(
+                color: const Color(0xFF2C2C2E),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                margin: EdgeInsets.zero,
+             ).data, // Convert to data if needed by older flutter versions or just fix passing
+             textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
+             appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFF1C1C1E),
+                elevation: 0,
+                centerTitle: true,
+                titleTextStyle: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
+                iconTheme: IconThemeData(color: Color(0xFF0A84FF)),
+             ), 
           ),
-          iconTheme: IconThemeData(color: Color(0xFF007AFF)),
-        ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+          theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFF2F2F7),
+            primaryColor: const Color(0xFF007AFF),
+            colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF007AFF), brightness: Brightness.light),
+            cardTheme: CardTheme(
+               color: Colors.white,
+               elevation: 0,
+               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ).data,
+             appBarTheme: const AppBarTheme(
+                backgroundColor: Color(0xFFF2F2F7),
+                elevation: 0,
+                centerTitle: true,
+                titleTextStyle: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
+                iconTheme: IconThemeData(color: Color(0xFF007AFF)),
+             ),
           ),
-          margin: EdgeInsets.zero,
-        ).data,
-      ),
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
-        '/guest': (context) => const GuestScreen(),
-        '/logs': (context) => const LogsScreen(),
-        '/codes': (context) => const CodesScreen(),
-        '/alerts': (context) => const AlertsScreen(),
-        '/profile': (context) => const ProfileScreen(),
-      },
+          initialRoute: '/login',
+          routes: {
+            '/login': (context) => const LoginScreen(),
+            '/register': (context) => const RegisterScreen(),
+            '/dashboard': (context) => const DashboardScreen(),
+            '/guest': (context) => const GuestScreen(),
+            '/logs': (context) => const LogsScreen(),
+            '/codes': (context) => const CodesScreen(),
+            '/alerts': (context) => const AlertsScreen(),
+            '/profile': (context) => const ProfileScreen(),
+          },
+        );
+      }
     );
   }
 }

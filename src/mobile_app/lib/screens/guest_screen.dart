@@ -13,7 +13,11 @@ class GuestScreen extends StatefulWidget {
 class _GuestScreenState extends State<GuestScreen> {
   final _plateController = TextEditingController();
   final _nameController = TextEditingController();
+  final _usesController = TextEditingController(text: "1");
+  
+  String _accessType = 'Tiempo'; // Options: Tiempo, Permanente, Un uso, Limite
   String _selectedDuration = '4h';
+  
   bool _showSuccess = false;
   String _generatedCode = '';
 
@@ -32,12 +36,18 @@ class _GuestScreenState extends State<GuestScreen> {
         return;
     }
 
+    // Determine final duration/type string to send
+    String finalConfigs = _selectedDuration;
+    if (_accessType == 'Permanente') finalConfigs = 'permanent';
+    if (_accessType == 'Un uso') finalConfigs = 'one_time';
+    if (_accessType == 'Limite') finalConfigs = 'limit_${_usesController.text}';
+
     final api = ApiService();
     final result = await api.createGuest(
         visitorName: _nameController.text,
         hostUsername: user.username,
         plate: _plateController.text,
-        duration: _selectedDuration
+        duration: finalConfigs
     );
 
     if (mounted) {
@@ -86,17 +96,20 @@ class _GuestScreenState extends State<GuestScreen> {
         leadingWidth: 80,
         title: const Text("Visitante"),
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _sectionHeader("DATOS DEL INVITADO"),
-                Container(
+      body: Center(
+        child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Stack(
+                children: [
+                SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                        _sectionHeader("DATOS DEL INVITADO"),
+                        Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardTheme.color,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -120,30 +133,81 @@ class _GuestScreenState extends State<GuestScreen> {
                 ),
                 
                 const SizedBox(height: 25),
-                _sectionHeader("VALIDEZ DEL ACCESO"),
+                _sectionHeader("TIPO DE ACCESO"),
                 Container(
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardTheme.color,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     children: [
-                       Row(
-                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                         children: ['30m', '4h', '12h', '24h'].map((e) => _durationChip(e)).toList(),
-                       ),
-                       const SizedBox(height: 15),
-                       const TextField(
-                         keyboardType: TextInputType.number,
-                         textAlign: TextAlign.right,
-                         decoration: InputDecoration(
-                           prefixText: "Otro",
-                           suffixText: "Horas",
-                           border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12)),
-                           isDense: true,
-                         ),
-                       )
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _typeChip("Tiempo"),
+                              const SizedBox(width: 8),
+                              _typeChip("Permanente"),
+                              const SizedBox(width: 8),
+                              _typeChip("Un uso"),
+                              const SizedBox(width: 8),
+                              _typeChip("Limite"),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        Divider(color: Colors.grey[200]),
+                        const SizedBox(height: 15),
+                        
+                        // Conditional UI based on Selection
+                        if (_accessType == 'Tiempo') ...[
+                             Row(
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: ['30m', '4h', '12h', '24h'].map((e) => _durationChip(e)).toList(),
+                             ),
+                             const SizedBox(height: 15),
+                             const TextField(
+                               keyboardType: TextInputType.number,
+                               textAlign: TextAlign.right,
+                               decoration: InputDecoration(
+                                 prefixText: "Otro",
+                                 suffixText: "Horas",
+                                 border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12)),
+                                 isDense: true,
+                               ),
+                             )
+                        ] else if (_accessType == 'Limite') ...[
+                             Row(
+                               children: [
+                                  const Text("Cantidad de usos:", style: TextStyle(fontSize: 16)),
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                      child: TextField(
+                                          controller: _usesController,
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          decoration: InputDecoration(
+                                              filled: true,
+                                              fillColor: Theme.of(context).scaffoldBackgroundColor,
+                                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                          ),
+                                      ),
+                                  )
+                               ],
+                             )
+                        ] else if (_accessType == 'Permanente') ...[
+                             const Padding(
+                               padding: EdgeInsets.all(10.0),
+                               child: Text("Este código no expirará hasta que lo revoques manualmente.", style: TextStyle(color: Colors.grey)),
+                             )
+                        ] else ...[
+                             const Padding(
+                               padding: EdgeInsets.all(10.0),
+                               child: Text("El código será válido para una única entrada y salida.", style: TextStyle(color: Colors.grey)),
+                             )
+                        ]
+
                     ],
                   ),
                 ),
@@ -167,8 +231,8 @@ class _GuestScreenState extends State<GuestScreen> {
           
           if (_isCameraOpen) _buildCameraOverlay(),
         ],
-      ),
-    );
+      )),
+    ));
   }
 
   Widget _buildSuccessScreen() {
@@ -269,7 +333,7 @@ class _GuestScreenState extends State<GuestScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F7),
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -284,6 +348,23 @@ class _GuestScreenState extends State<GuestScreen> {
     );
   }
 
+  Widget _typeChip(String label) {
+    bool isSelected = _accessType == label;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (bool selected) {
+        setState(() {
+          _accessType = label;
+        });
+      },
+      selectedColor: const Color(0xFF0A84FF), // Blue background when selected
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white), // Always white text for dark mode visibility
+      backgroundColor: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? const Color(0xFF0A84FF) : Colors.transparent)),
+    );
+  }
+
   Widget _durationChip(String label) {
     final bool isSelected = _selectedDuration == label;
     return GestureDetector(
@@ -291,10 +372,10 @@ class _GuestScreenState extends State<GuestScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).primaryColor : const Color(0xFFF2F2F7),
+          color: isSelected ? const Color(0xFF0A84FF) : Theme.of(context).cardColor, // Blue background when selected
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.black)),
+        child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       ),
     );
   }

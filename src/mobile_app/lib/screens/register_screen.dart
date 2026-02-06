@@ -44,28 +44,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Basic validation
     if (_passwordController.text != _confirmPasswordController.text) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Las contraseñas no coinciden")));
         }
         return;
     }
 
+    // Combine code and location? Or just pass location as the "Code + House" string?
+    // For now, let's assume the backend 'location' field stores the specific metadata (House)
+    // and we validated the 'Code' exists separately.
+    
     final api = ApiService();
-    // Using email as username, passing location
     final result = await api.register(
         _emailController.text, 
         _passwordController.text,
-        _locationController.text
+        "${_codeController.text} - ${_locationController.text}", // Passing both for now
+        _nameController.text
     );
 
     if (mounted) {
       if (result['success']) {
-        // Set user provider (assuming email as username for now)
-        Provider.of<UserProvider>(context, listen: false).setUser(_emailController.text);
+        Provider.of<UserProvider>(context, listen: false).setUser(
+            _emailController.text,
+            name: _nameController.text
+        );
         Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message'] != null ? result['message'].toString() : 'Registration failed'),
+            content: Text(result['message'] != null ? result['message'].toString() : 'Error en registro'),
             backgroundColor: Colors.red,
           ),
         );
@@ -73,11 +79,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _nextStep() {
+  void _nextStep() async {
     if (_currentStep < _totalSteps - 1) {
+      if (_currentStep == 0) {
+         if (_nameController.text.isEmpty || _emailController.text.isEmpty) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completa todos los campos")));
+             return;
+         }
+      }
+      if (_currentStep == 1) {
+          if (_passwordController.text.length < 6) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Contraseña muy corta")));
+             return;
+          }
+      }
       setState(() => _currentStep++);
     } else {
-      _handleRegister();
+      // Step 2: Validation before Register
+      if (_codeController.text.isEmpty) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingresa el código")));
+           return;
+      }
+      
+      showDialog(barrierDismissible: false, context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
+      
+      final api = ApiService();
+      final valid = await api.verifyLocation(_codeController.text);
+      
+      if (mounted) {
+          Navigator.pop(context); // Close loading
+          if (valid['success'] == true) {
+               _handleRegister();
+          } else {
+               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Código de Fraccionamiento inválido")));
+          }
+      }
     }
   }
 
@@ -98,10 +134,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text("Registro"),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Progress Bar
-            Padding(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              children: [
+                // Progress Bar
+                Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: LinearProgressIndicator(
                 value: (_currentStep + 1) / _totalSteps,
@@ -153,7 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
-    );
+    )));
   }
 
   String _getStepTitle() {

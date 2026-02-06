@@ -49,6 +49,51 @@ Desktop.ini
 # Secrets
 src/main/Server/*.json
 
+# Custom Build Outputs
+Desktop/
+PCS_App_Final/
+
+# Flutter/Dart (Root Level Rules to catch all)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+.pub-cache/
+.pub/
+
+# Flutter - Android
+**/android/app/libs/
+**/android/app/src/main/assets/
+**/gradle-wrapper.jar
+**/android/.gradle
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/key.properties
+
+# Flutter - iOS
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Flutter - Windows
+**/windows/flutter/ephemeral/
+**/windows/runner/resources/app_icon.ico
+
+# Flutter - Linux
+**/linux/flutter/ephemeral/
+
+# Flutter - macOS
+**/macos/Flutter/ephemeral/
+
+
 # Node
 node_modules/
 
