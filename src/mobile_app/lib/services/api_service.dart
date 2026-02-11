@@ -163,6 +163,7 @@ class ApiService {
     String location = "Main Gate",
     List<String> visitors = const [],
     List<String> logs = const [],
+    String? duration,
   }) async {
     final url = Uri.parse('$baseUrl/codes');
     try {
@@ -176,6 +177,7 @@ class ApiService {
           'location': location,
           'visitors': visitors,
           'logs': logs,
+          'duration': duration,
         }),
       );
 
@@ -189,6 +191,17 @@ class ApiService {
     } catch (e) {
       print('Save Code error: $e');
        return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<bool> deleteCode(String code) async {
+    final url = Uri.parse('$baseUrl/codes?code=$code');
+    try {
+      final response = await http.delete(url);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Delete Code error: $e');
+      return false;
     }
   }
 

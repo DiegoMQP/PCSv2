@@ -74,6 +74,7 @@ public class Main {
         app.post("/register", Main::handleRegister);
         app.post("/login", Main::handleLogin);
         app.post("/codes", Main::handleSaveCode);
+        app.delete("/codes", Main::handleDeleteCode);
         app.post("/guests", Main::handleCreateGuest);
         app.post("/verify-access", Main::handleVerifyAccess); // New Endpoint
         
@@ -87,29 +88,49 @@ public class Main {
             try {
                 // Query active codes that have expired
                 long now = System.currentTimeMillis();
+                
+                // 1. Check Guests
                 ApiFuture<QuerySnapshot> query = db.collection("guests")
                     .whereEqualTo("status", "ACTIVE")
                     .whereLessThan("expires_at", now)
                     .get();
                 
                 for (com.google.cloud.firestore.DocumentSnapshot doc : query.get().getDocuments()) {
-                     // Update status
                      doc.getReference().update("status", "EXPIRED");
-                     
-                     // Create Notification
                      String host = doc.getString("host_username");
                      String visitor = doc.getString("visitor_name");
-                     
                      Map<String, Object> notif = new HashMap<>();
                      notif.put("host_username", host);
-                     notif.put("message", "El código de acceso para " + visitor + " ha expirado.");
+                     notif.put("message", "El código de visita para " + visitor + " ha expirado.");
                      notif.put("timestamp", now);
                      notif.put("read", false);
                      notif.put("type", "EXPIRATION");
-                     
-                     db.collection("notifications").add(notif);
-                     System.out.println("Expired code for guest: " + visitor);
+                     if (host != null) db.collection("notifications").add(notif);
                 }
+
+                // 2. Check Fractionation Codes (My Codes)
+                ApiFuture<QuerySnapshot> queryCodes = db.collection("fractionation_codes")
+                    .whereEqualTo("status", "ACTIVE")
+                    .whereLessThan("expires_at", now)
+                    .get();
+                
+                for (com.google.cloud.firestore.DocumentSnapshot doc : queryCodes.get().getDocuments()) {
+                     doc.getReference().delete(); // Or update to EXPIRED? "Eliminar" means delete usually.
+                     // The user request says "eliminar despues de que pase el tiempo".
+                     // So I will delete it.
+                     
+                     String host = doc.getString("host_username");
+                     String name = doc.getString("name");
+                     
+                     Map<String, Object> notif = new HashMap<>();
+                     notif.put("host_username", host);
+                     notif.put("message", "El código personal '" + name + "' ha sido eliminado por expiración.");
+                     notif.put("timestamp", now);
+                     notif.put("read", false);
+                     notif.put("type", "EXPIRATION");
+                     if (host != null) db.collection("notifications").add(notif);
+                }
+
             } catch (Exception e) {
                 // e.printStackTrace(); 
             }
@@ -358,6 +379,7 @@ public class Main {
         String code = (String) body.get("code");
         String name = (String) body.get("name");
         String username = (String) body.get("username"); // Added username check
+        String duration = (String) body.get("duration");
         
         if (code == null || name == null) {
              ctx.status(400).result("Missing code, name");
@@ -366,8 +388,24 @@ public class Main {
 
         try {
             // Add a timestamp for when this was saved
-            body.put("timestamp", System.currentTimeMillis());
+            long now = System.currentTimeMillis();
+            body.put("timestamp", now);
             if (username != null) body.put("host_username", username);
+            body.put("status", "ACTIVE"); // Default status
+
+            // Calculate Expiration if duration provided
+            if (duration != null && !duration.isEmpty()) {
+                long millisToAdd = 0;
+                if (duration.equals("30m")) millisToAdd = 30 * 60 * 1000L;
+                else if (duration.equals("4h")) millisToAdd = 4 * 60 * 60 * 1000L;
+                else if (duration.equals("12h")) millisToAdd = 12 * 60 * 60 * 1000L;
+                else if (duration.equals("24h")) millisToAdd = 24 * 60 * 60 * 1000L;
+                else if (duration.equals("1w")) millisToAdd = 7 * 24 * 60 * 60 * 1000L;
+                
+                if (millisToAdd > 0) {
+                     body.put("expires_at", now + millisToAdd);
+                }
+            }
             
             // Assuming "codes" is the collection name for fractionation codes
             ApiFuture<WriteResult> future = db.collection("fractionation_codes").document(code).set(body);
@@ -376,6 +414,22 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
             ctx.status(500).result("Error saving code");
+        }
+    }
+
+    // Delete Code Handler
+    private static void handleDeleteCode(Context ctx) {
+        String code = ctx.queryParam("code");
+        if (code == null) {
+            ctx.status(400).result("Missing code");
+            return;
+        }
+        try {
+            ApiFuture<WriteResult> future = db.collection("fractionation_codes").document(code).delete();
+            future.get();
+            ctx.status(200).result("Code deleted");
+        } catch (Exception e) {
+            ctx.status(500).result("Error deleting code");
         }
     }
 
