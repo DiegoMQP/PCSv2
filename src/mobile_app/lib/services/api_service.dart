@@ -2,18 +2,12 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
   // Determine Base URL dynamically
   static String get baseUrl {
-    if (kIsWeb) return 'http://127.0.0.1:7070';
-    // 10.0.2.2 is for Android Emulator to access host localhost
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:7070';
-    // For iOS Simulator and Desktop (Windows/Mac/Linux)
-    // Using 127.0.0.1 instead of localhost avoids DNS resolution issues on Windows
-    return 'http://127.0.0.1:7070';
+    return 'https://pseudoacademically-crenelated-patti.ngrok-free.dev';
   }
   
   static final ApiService _instance = ApiService._internal();

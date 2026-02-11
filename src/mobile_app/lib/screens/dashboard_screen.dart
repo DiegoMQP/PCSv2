@@ -142,7 +142,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FadeInDown(
-                child: Text("Bienvenido de nuevo,", 
+                child: const Text("Bienvenido de nuevo,", 
                   style: TextStyle(fontSize: 16, color: Colors.grey)),
               ),
               const SizedBox(height: 5),
@@ -194,10 +194,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: Column(
             children: [
-            Text("Visitas Activas", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+            const Text("Visitas Activas", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
             const SizedBox(height: 10),
             Text("0", style: TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary)),
-            Text("Total hoy", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            const Text("Total hoy", style: TextStyle(color: Colors.grey, fontSize: 13)),
             ],
         ),
         ),
