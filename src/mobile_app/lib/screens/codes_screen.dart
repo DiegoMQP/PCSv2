@@ -82,12 +82,17 @@ class _CodesScreenState extends State<CodesScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancelar"),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancelar"),
+                  ),
                 ),
-                ElevatedButton(
-                  onPressed: () async {
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: ElevatedButton(
+                    onPressed: () async {
                     if (nameController.text.isEmpty) return;
                     
                     final user = Provider.of<UserProvider>(context, listen: false);
@@ -110,6 +115,7 @@ class _CodesScreenState extends State<CodesScreen> {
                     }
                   },
                   child: const Text("Guardar"),
+                ),
                 )
               ],
             );

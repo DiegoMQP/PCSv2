@@ -236,16 +236,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildActionBtn({required IconData icon, required String label, required Color color, VoidCallback? onTap}) {
     return FadeInUp(
       delay: const Duration(milliseconds: 100),
-      child: GestureDetector(
+      child: _ActionButton(
+        icon: icon,
+        label: label,
+        color: color,
         onTap: onTap,
-        child: Container(
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  State<_ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<_ActionButton> {
+  bool _isHovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovering = true),
+      onExit: (_) => setState(() => _isHovering = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: Theme.of(context).cardTheme.color,
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 4))
-            ]
+              BoxShadow(
+                color: Colors.black.withOpacity(_isHovering ? 0.15 : 0.05),
+                blurRadius: _isHovering ? 20 : 15,
+                offset: Offset(0, _isHovering ? 6 : 4),
+              )
+            ],
           ),
+          transform: _isHovering ? Matrix4.translationValues(0, -2, 0) : Matrix4.identity(),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -253,13 +295,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: widget.color.withOpacity(_isHovering ? 0.2 : 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 24),
+                child: Icon(widget.icon, color: widget.color, size: 24),
               ),
               const SizedBox(height: 15),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
             ],
           ),
         ),

@@ -89,9 +89,12 @@ class _GuestScreenState extends State<GuestScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancelar", style: TextStyle(fontSize: 14)),
+        leading: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar", style: TextStyle(fontSize: 14)),
+          ),
         ),
         leadingWidth: 80,
         title: const Text("Visitante"),
@@ -213,16 +216,19 @@ class _GuestScreenState extends State<GuestScreen> {
                 ),
                 
                 const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _generateCode,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _generateCode,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                      ),
+                      child: const Text("Generar Código de Acceso", style: TextStyle(color: Colors.white, fontSize: 16)),
                     ),
-                    child: const Text("Generar Código de Acceso", style: TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 )
               ],
@@ -256,9 +262,12 @@ class _GuestScreenState extends State<GuestScreen> {
                       const SizedBox(height: 10),
                       Text("Comparte este código con tu visita", style: TextStyle(color: Colors.grey[600])),
                       const SizedBox(height: 40),
-                      TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text("Volver al Inicio"),
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Volver al Inicio"),
+                        ),
                       )
                   ],
               ),

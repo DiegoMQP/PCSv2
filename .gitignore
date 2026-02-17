@@ -46,9 +46,6 @@ ehthumbs.db
 Thumbs.db
 Desktop.ini
 
-# Secrets
-src/main/Server/*.json
-
 # Custom Build Outputs
 Desktop/
 PCS_App_Final/

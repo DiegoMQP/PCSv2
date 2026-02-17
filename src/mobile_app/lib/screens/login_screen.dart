@@ -183,10 +183,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginForm(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Stack(
       children: [
-        if (MediaQuery.of(context).size.width <= 900) ...[
+        SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (MediaQuery.of(context).size.width <= 900) ...[
           FadeInDown(
             duration: const Duration(milliseconds: 800),
             child: Container(
@@ -308,21 +311,22 @@ class _LoginScreenState extends State<LoginScreen> {
         if (_isButtonVisible)
           ZoomIn(
             duration: const Duration(milliseconds: 300),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
+                  child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
-                child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Iniciar Sesión", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
               ),
             ),
           ),
@@ -346,6 +350,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text("¿No tienes cuenta? Regístrate"),
                     ),
                 ),
+            ),
+          ),
+            ],
+          ),
+        ),
+        if (_isLoading)
+          Positioned.fill(
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor.withOpacity(0.9),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
             ),
           ),
       ],

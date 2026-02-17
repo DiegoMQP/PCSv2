@@ -70,20 +70,23 @@ class ProfileScreen extends StatelessWidget {
                 ]),
 
                 const SizedBox(height: 30),
-                SizedBox(
-                  width: double.infinity,
-                  child: TextButton(
-                    onPressed: () {
-                         Provider.of<UserProvider>(context, listen: false).clearUser();
-                         Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Theme.of(context).cardTheme.color,
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                           Provider.of<UserProvider>(context, listen: false).clearUser();
+                           Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context).cardTheme.color,
+                        foregroundColor: Colors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                      ),
+                      child: const Text("Cerrar Sesión", style: TextStyle(fontSize: 16)),
                     ),
-                    child: const Text("Cerrar Sesión", style: TextStyle(fontSize: 16)),
                   ),
                 ),
                 const SizedBox(height: 20),
