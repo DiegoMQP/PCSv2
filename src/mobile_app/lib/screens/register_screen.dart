@@ -181,12 +181,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: ElevatedButton(
                     onPressed: _nextStep,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
                     ),
                     child: Text(
                       _currentStep == _totalSteps - 1 ? "Finalizar Registro" : "Continuar",
-                      style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -283,9 +284,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hint,
+          hintStyle: TextStyle(color: Colors.black54),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
+        style: const TextStyle(color: Colors.black),
+        cursorColor: Colors.black,
       ),
     );
   }

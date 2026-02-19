@@ -13,13 +13,38 @@ class LogsScreen extends StatefulWidget {
 }
 
 class _LogsScreenState extends State<LogsScreen> {
+  late Future<List<dynamic>> _logsFuture;
+  String? _lastUsername;
+
   Future<void> _refresh() async {
-    setState(() { });
+    final user = Provider.of<UserProvider>(context, listen: false);
+    if (user.username.isEmpty) return;
+    setState(() {
+      _logsFuture = ApiService().getLogs(user.username);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<UserProvider>(context, listen: false);
+    if ((user.username.isNotEmpty) && user.username != _lastUsername) {
+      _lastUsername = user.username;
+      _refresh();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context);
+
+    if (user.username.isEmpty) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        appBar: AppBar(title: const Text("Historial")),
+        body: const Center(child: Text("Inicia sesión para ver el historial")),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -46,7 +71,7 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
           Expanded(
             child: FutureBuilder<List<dynamic>>(
-              future: ApiService().getLogs(user.username),
+              future: _logsFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());

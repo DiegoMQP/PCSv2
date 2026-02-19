@@ -62,6 +62,34 @@ class ApiService {
     }
   }
 
+  /// Create a log/event on the server.
+  Future<bool> createLog({
+    required String username,
+    String? code,
+    required String eventType,
+    String? message,
+  }) async {
+    final url = Uri.parse('$baseUrl/logs');
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'code': code,
+          'event_type': eventType,
+          'message': message,
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+        }),
+      );
+
+      return response.statusCode == 201 || response.statusCode == 200;
+    } catch (e) {
+      print('Create Log error: $e');
+      return false;
+    }
+  }
+
   Future<List<dynamic>> getAlerts() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/alerts'));

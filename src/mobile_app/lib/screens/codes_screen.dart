@@ -14,15 +14,36 @@ class CodesScreen extends StatefulWidget {
 
 class _CodesScreenState extends State<CodesScreen> {
   late Future<List<dynamic>> _codesFuture;
+  String? _lastUsername;
 
   @override
   void initState() {
     super.initState();
-    _refreshCodes();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<UserProvider>(context, listen: false);
+    // Only refresh when we have a username and it changed
+    if ((user.username.isNotEmpty) && user.username != _lastUsername) {
+      _lastUsername = user.username;
+      _refreshCodes();
+    }
   }
 
   void _refreshCodes() {
     final user = Provider.of<UserProvider>(context, listen: false);
+    // Debug: ensure we have a username before calling API
+    if (user.username.isEmpty) {
+      // Avoid calling API with empty username
+      if (mounted) {
+        setState(() {
+          _codesFuture = Future.value([]);
+        });
+      }
+      return;
+    }
     setState(() {
       _codesFuture = ApiService().getCodes(user.username);
     });
