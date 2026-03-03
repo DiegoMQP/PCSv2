@@ -87,7 +87,10 @@ public class CodeService {
         body.put("timestamp", now);
         if (username != null) body.put("host_username", username);
         body.put("status", "ACTIVE");
+        body.put("duration", duration);
         if (qrUrl != null) body.put("qr_url", qrUrl);
+        if (expiresAt != null) body.put("expires_at", expiresAt);
+        else body.remove("expires_at");
         db.collection("fractionation_codes").document(code).set(body).get();
     }
 

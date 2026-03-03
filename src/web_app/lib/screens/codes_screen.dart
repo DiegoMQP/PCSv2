@@ -172,23 +172,30 @@ class _CodesScreenState extends State<CodesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(28),
+    return LayoutBuilder(builder: (context, cst) {
+      final isMobile = cst.maxWidth < 600;
+      return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 28, vertical: isMobile ? 16 : 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Mis Códigos de Acceso', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Text('Mis Códigos de Acceso',
+                  style: TextStyle(fontSize: isMobile ? 17 : 22, fontWeight: FontWeight.w800),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: _showAddDialog,
-                icon: const Icon(Icons.add),
-                label: const Text('Nuevo Código'),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(isMobile ? 'Nuevo' : 'Nuevo Código'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0A84FF),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -235,6 +242,7 @@ class _CodesScreenState extends State<CodesScreen> {
         ],
       ),
     );
+    });
   }
 }
 
