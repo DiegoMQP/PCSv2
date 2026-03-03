@@ -85,8 +85,16 @@
     <div class="sub">Control Residencial</div>
     <div class="spinner" id="load-spinner"></div>
     <div class="status" id="load-status">Iniciando...</div>
-    <div class="err" id="load-err">Error al cargar la aplicación.<br>Intenta recargar la página.</div>
+    <div class="err" id="load-err"></div>
   </div>
+  <script>
+    // Clear stale service workers before Flutter loads
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        for (var i = 0; i < regs.length; i++) regs[i].unregister();
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js"></script>
 </body>
 </html>
