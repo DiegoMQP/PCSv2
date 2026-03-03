@@ -24,10 +24,10 @@ public class PostgresDatabase {
             String jdbcUrl = dbUrl.startsWith("jdbc:") ? dbUrl
                     : dbUrl.replace("postgresql://", "jdbc:postgresql://");
 
-            // Append sslmode=disable for Railway internal connections (no SSL needed)
-            // This is safe: Railway internal network is already secure
+            // Append sslmode if not already in URL
+            // Public Railway proxy requires SSL; internal does not but accepts it
             if (!jdbcUrl.contains("sslmode")) {
-                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=disable";
+                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
             }
 
             HikariConfig config = new HikariConfig();
