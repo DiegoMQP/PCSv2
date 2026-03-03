@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
+import '../l10n/app_localizations.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -44,7 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Basic validation
     if (_passwordController.text != _confirmPasswordController.text) {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Las contraseñas no coinciden")));
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('passwords_not_match'))));
         }
         return;
     }
@@ -83,13 +84,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_currentStep < _totalSteps - 1) {
       if (_currentStep == 0) {
          if (_nameController.text.isEmpty || _emailController.text.isEmpty) {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Completa todos los campos")));
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('complete_fields'))));
              return;
          }
       }
       if (_currentStep == 1) {
           if (_passwordController.text.length < 6) {
-             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Contraseña muy corta")));
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('short_password'))));
              return;
           }
       }
@@ -97,8 +98,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       // Step 2: Validation before Register
       if (_codeController.text.isEmpty) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingresa el código")));
-           return;
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('enter_code'))));
       }
       
       showDialog(barrierDismissible: false, context: context, builder: (_) => const Center(child: CircularProgressIndicator()));
@@ -111,7 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           if (valid['success'] == true) {
                _handleRegister();
           } else {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Código de Fraccionamiento inválido")));
+               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('invalid_subdivision_code'))));
           }
       }
     }
@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             }
           },
         ),
-        title: const Text("Registro"),
+      title: Text(context.tr('register_title')),
       ),
       body: SafeArea(
         child: Center(
@@ -186,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       elevation: 0,
                     ),
                     child: Text(
-                      _currentStep == _totalSteps - 1 ? "Finalizar Registro" : "Continuar",
+                      _currentStep == _totalSteps - 1 ? context.tr('finish_register') : context.tr('continue_btn'),
                       style: const TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -199,11 +199,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     )));
   }
 
-  String _getStepTitle() {
+  String _getStepTitle(BuildContext context) {
     switch (_currentStep) {
-      case 0: return "Datos Personales";
-      case 1: return "Seguridad";
-      case 2: return "Vinculación";
+      case 0: return context.trStatic('personal_data');
+      case 1: return context.trStatic('security_step');
+      case 2: return context.trStatic('link_step');
       default: return "";
     }
   }
@@ -216,9 +216,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
-              _buildInput("Nombre completo", _nameController),
-              _buildInput("Teléfono Móvil", _phoneController, type: TextInputType.phone),
-              _buildInput("Correo Electrónico", _emailController, type: TextInputType.emailAddress),
+              _buildInput(context.trStatic('full_name'), _nameController),
+              _buildInput(context.trStatic('phone'), _phoneController, type: TextInputType.phone),
+              _buildInput(context.trStatic('email'), _emailController, type: TextInputType.emailAddress),
             ],
           ),
         );
@@ -228,8 +228,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildInput("Contraseña", _passwordController, obscure: true, onChanged: _checkStrength),
-              _buildInput("Confirmar contraseña", _confirmPasswordController, obscure: true),
+              _buildInput(context.trStatic('password'), _passwordController, obscure: true, onChanged: _checkStrength),
+              _buildInput(context.trStatic('confirm_password'), _confirmPasswordController, obscure: true),
               const SizedBox(height: 10),
               if (_passwordController.text.isNotEmpty) ...[
                 ClipRRect(
@@ -255,11 +255,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Ingresa el código único proporcionado por tu administración.", style: TextStyle(color: Colors.grey[600])),
+              Text(context.trStatic('link_info'), style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 20),
-              _buildInput("Código de Fraccionamiento (Ej. PCS-2024)", _codeController),
+              _buildInput(context.trStatic('subdivision_code'), _codeController),
               const SizedBox(height: 20),
-              _buildInput("Ubicación / Casa (Ej. Manzana A Lote 3)", _locationController),
+              _buildInput(context.trStatic('location_hint'), _locationController),
             ],
           ),
         );

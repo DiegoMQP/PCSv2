@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 
 class VerifyScreen extends StatefulWidget {
@@ -86,7 +87,7 @@ class _VerifyScreenState extends State<VerifyScreen>
     if (code.length < _maxLen) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ingresa los 6 dígitos del código')),
+          SnackBar(content: Text(context.trStatic('enter_6_digits'))),
         );
       }
       return;
@@ -111,14 +112,14 @@ class _VerifyScreenState extends State<VerifyScreen>
     final primary = Theme.of(context).colorScheme.primary;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verificar Código de Acceso'),
+        title: Text(context.tr('verify_access')),
         bottom: kIsWeb
             ? null
             : TabBar(
                 controller: _tabController,
-                tabs: const [
-                  Tab(icon: Icon(Icons.camera_alt_outlined), text: 'Cámara'),
-                  Tab(icon: Icon(Icons.keyboard_outlined), text: 'Teclado'),
+                tabs: [
+                  Tab(icon: const Icon(Icons.camera_alt_outlined), text: context.tr('camera')),
+                  Tab(icon: const Icon(Icons.keyboard_outlined), text: context.tr('keyboard')),
                 ],
               ),
       ),
@@ -162,8 +163,8 @@ class _VerifyScreenState extends State<VerifyScreen>
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('Apunta al código QR',
-                        style: TextStyle(color: Colors.white, fontSize: 14)),
+                    child: Text(context.tr('point_at_qr'),
+                        style: const TextStyle(color: Colors.white, fontSize: 14)),
                   ),
                 ),
               ),
@@ -182,7 +183,7 @@ class _VerifyScreenState extends State<VerifyScreen>
                 else if (_result != null)
                   _ResultCard(result: _result!)
                 else
-                  Text('Escanea un código QR para verificar acceso',
+                  Text(context.tr('scan_qr_hint'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey.shade500)),
                 if (_result != null) ...
@@ -190,7 +191,7 @@ class _VerifyScreenState extends State<VerifyScreen>
                     const SizedBox(height: 16),
                     TextButton.icon(
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Escanear otro'),
+                      label: Text(context.tr('scan_another')),
                       onPressed: () => setState(() => _result = null),
                     ),
                   ],
@@ -240,8 +241,8 @@ class _VerifyScreenState extends State<VerifyScreen>
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.verified_outlined),
-                    label: const Text('Verificar Acceso',
-                        style: TextStyle(fontSize: 16)),
+                    label: Text(context.tr('verify_btn'),
+                        style: const TextStyle(fontSize: 16)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primary,
                       foregroundColor: Colors.white,
@@ -331,7 +332,7 @@ class _ResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = result.valid ? const Color(0xFF34C759) : Colors.red;
     final icon = result.valid ? Icons.check_circle : Icons.cancel;
-    final label = result.valid ? 'ACCESO CONCEDIDO' : 'ACCESO DENEGADO';
+    final label = result.valid ? context.tr('access_granted') : context.tr('access_denied');
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -359,11 +360,11 @@ class _ResultCard extends StatelessWidget {
           ],
           if (result.host != null) ...[
             const SizedBox(height: 6),
-            _InfoChip(Icons.home, 'Residente: ${result.host!}'),
+            _InfoChip(Icons.home, '${context.tr("resident")}: ${result.host!}'),
           ],
           if (result.type != null) ...[
             const SizedBox(height: 6),
-            _InfoChip(Icons.access_time, _typeLabel(result.type!)),
+            _InfoChip(Icons.access_time, _typeLabel(result.type!, context)),
           ],
           if (!result.valid && result.message != null) ...[
             const SizedBox(height: 8),
@@ -377,16 +378,16 @@ class _ResultCard extends StatelessWidget {
     );
   }
 
-  String _typeLabel(String type) {
+  String _typeLabel(String type, BuildContext context) {
     switch (type.toUpperCase()) {
       case 'PERMANENT':
-        return 'Acceso Permanente';
+        return context.tr('permanent_access');
       case 'ONE_TIME':
-        return 'Un solo uso';
+        return context.tr('one_use_access');
       case 'TIME':
-        return 'Acceso Temporal';
+        return context.tr('temporal_access');
       case 'LIMIT':
-        return 'Usos limitados';
+        return context.tr('limited_uses');
       default:
         return type;
     }

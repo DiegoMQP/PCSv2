@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../l10n/app_localizations.dart';
 
 class AlertsScreen extends StatefulWidget {
   const AlertsScreen({super.key});
@@ -25,7 +26,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text("Alertas")),
+      appBar: AppBar(title: Text(context.tr('alerts'))),
       body: FutureBuilder<List<dynamic>>(
           future: _notificationsFuture,
           builder: (context, snapshot) {
@@ -34,7 +35,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
               }
               final alerts = snapshot.data ?? [];
               if (alerts.isEmpty) {
-                  return const Center(child: Text("No hay notificaciones nuevas"));
+                  return Center(child: Text(context.tr('no_notifications')));
               }
               return ListView.builder(
                   padding: const EdgeInsets.all(10),
@@ -49,7 +50,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                 isExpiration ? FontAwesomeIcons.clock : FontAwesomeIcons.triangleExclamation, 
                                 color: isExpiration ? Colors.red : Colors.orange
                               ),
-                              title: Text(isExpiration ? 'Código Expirado' : (alert['title'] ?? 'Alerta')),
+                              title: Text(isExpiration ? context.tr('expired_code') : (alert['title'] ?? context.tr('alert'))),
                               subtitle: Text(alert['message'] ?? ''),
                           ),
                       );

@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
 import '../widgets/qr_card_widget.dart';
@@ -17,7 +18,7 @@ class _GuestScreenState extends State<GuestScreen> {
   final _nameController = TextEditingController();
   final _usesController = TextEditingController(text: "1");
   
-  String _accessType = 'Tiempo'; // Options: Tiempo, Permanente, Un uso, Limite
+  String _accessType = 'time'; // Options: time, permanent, one_use, limit
   String _selectedDuration = '4h';
 
   bool _showSuccess = false;
@@ -30,20 +31,20 @@ class _GuestScreenState extends State<GuestScreen> {
   Future<void> _generateCode() async {
     final user = Provider.of<UserProvider>(context, listen: false);
     if (user.username.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error: Usuario no identificado")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('user_not_id'))));
         return;
     }
     
     if (_nameController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ingrese nombre del invitado")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.trStatic('enter_guest_name'))));
         return;
     }
 
     // Determine final duration/type string to send
     String finalConfigs = _selectedDuration;
-    if (_accessType == 'Permanente') finalConfigs = 'permanent';
-    if (_accessType == 'Un uso') finalConfigs = 'one_time';
-    if (_accessType == 'Limite') finalConfigs = 'limit_${_usesController.text}';
+    if (_accessType == 'permanent') finalConfigs = 'permanent';
+    if (_accessType == 'one_use') finalConfigs = 'one_time';
+    if (_accessType == 'limit') finalConfigs = 'limit_${_usesController.text}';
 
     final api = ApiService();
     final result = await api.createGuest(
@@ -63,11 +64,11 @@ class _GuestScreenState extends State<GuestScreen> {
             }
             // Calculate expires_at for display (mirrors server logic)
             int? expiresAt;
-            if (_accessType == 'Tiempo') {
+            if (_accessType == 'time') {
               final durations = {'30m': 30, '4h': 240, '12h': 720, '24h': 1440};
               final mins = durations[_selectedDuration] ?? 240;
               expiresAt = DateTime.now().millisecondsSinceEpoch + (mins * 60 * 1000);
-            } else if (_accessType == 'Limite' || _accessType == 'Un uso') {
+            } else if (_accessType == 'limit' || _accessType == 'one_use') {
               expiresAt = DateTime.now().millisecondsSinceEpoch + (24 * 60 * 60 * 1000);
             }
             // Also persist to fractionation_codes so it shows in "Mis Códigos"
@@ -123,11 +124,11 @@ class _GuestScreenState extends State<GuestScreen> {
           cursor: SystemMouseCursors.click,
           child: TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar", style: TextStyle(fontSize: 14)),
+            child: Text(context.tr('cancel'), style: const TextStyle(fontSize: 14)),
           ),
         ),
         leadingWidth: 80,
-        title: const Text("Visitante"),
+        title: Text(context.tr('visitor')),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -139,7 +140,7 @@ class _GuestScreenState extends State<GuestScreen> {
                     child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                        _sectionHeader("DATOS DEL INVITADO"),
+                        _sectionHeader(context.tr('guest_data')),
                         Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardTheme.color,
@@ -147,17 +148,17 @@ class _GuestScreenState extends State<GuestScreen> {
                   ),
                   child: Column(
                     children: [
-                      _buildRowInput("Nombre", _nameController, "Obligatorio"),
+                      _buildRowInput(context.tr('name'), _nameController, context.tr('required')),
                       Divider(height: 1, indent: 20, color: Colors.grey[200]),
-                      _buildRowInput("Placa", _plateController, "Opcional"),
+                      _buildRowInput(context.tr('plate'), _plateController, context.tr('optional')),
                       Divider(height: 1, indent: 20, color: Colors.grey[200]),
                       Padding(
                         padding: const EdgeInsets.all(10),
                         child: Row(
                           children: [
-                            Expanded(child: _secondaryBtn(Icons.camera_alt, "Escanear", _scanPlate)),
+                            Expanded(child: _secondaryBtn(Icons.camera_alt, context.tr('scan'), _scanPlate)),
                             const SizedBox(width: 10),
-                            Expanded(child: _secondaryBtn(Icons.image, "Subir Foto", () {})),
+                            Expanded(child: _secondaryBtn(Icons.image, context.tr('upload_photo'), () {})),
                           ],
                         ),
                       )
@@ -166,7 +167,7 @@ class _GuestScreenState extends State<GuestScreen> {
                 ),
                 
                 const SizedBox(height: 25),
-                _sectionHeader("TIPO DE ACCESO"),
+                _sectionHeader(context.tr('access_type')),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
                   decoration: BoxDecoration(
@@ -179,13 +180,13 @@ class _GuestScreenState extends State<GuestScreen> {
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _typeChip("Tiempo"),
+                              _typeChip('time', context.tr('time_type')),
                               const SizedBox(width: 8),
-                              _typeChip("Permanente"),
+                              _typeChip('permanent', context.tr('permanent')),
                               const SizedBox(width: 8),
-                              _typeChip("Un uso"),
+                              _typeChip('one_use', context.tr('one_use_type')),
                               const SizedBox(width: 8),
-                              _typeChip("Limite"),
+                              _typeChip('limit', context.tr('limit_type')),
                             ],
                           ),
                         ),
@@ -194,26 +195,26 @@ class _GuestScreenState extends State<GuestScreen> {
                         const SizedBox(height: 15),
                         
                         // Conditional UI based on Selection
-                        if (_accessType == 'Tiempo') ...[
+                        if (_accessType == 'time') ...[
                              Row(
                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                children: ['30m', '4h', '12h', '24h'].map((e) => _durationChip(e)).toList(),
                              ),
                              const SizedBox(height: 15),
-                             const TextField(
+                             TextField(
                                keyboardType: TextInputType.number,
                                textAlign: TextAlign.right,
                                decoration: InputDecoration(
-                                 prefixText: "Otro",
-                                 suffixText: "Horas",
-                                 border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12)),
+                                 prefixText: context.tr('other'),
+                                 suffixText: context.tr('hours'),
+                                 border: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.black12)),
                                  isDense: true,
                                ),
                              )
-                        ] else if (_accessType == 'Limite') ...[
+                        ] else if (_accessType == 'limit') ...[
                              Row(
                                children: [
-                                  const Text("Cantidad de usos:", style: TextStyle(fontSize: 16)),
+                                  Text(context.tr('uses_count'), style: const TextStyle(fontSize: 16)),
                                   const SizedBox(width: 20),
                                   Expanded(
                                       child: TextField(
@@ -229,15 +230,15 @@ class _GuestScreenState extends State<GuestScreen> {
                                   )
                                ],
                              )
-                        ] else if (_accessType == 'Permanente') ...[
-                             const Padding(
-                               padding: EdgeInsets.all(10.0),
-                               child: Text("Este código no expirará hasta que lo revoques manualmente.", style: TextStyle(color: Colors.grey)),
+                        ] else if (_accessType == 'permanent') ...[
+                             Padding(
+                               padding: const EdgeInsets.all(10.0),
+                               child: Text(context.tr('permanent_desc'), style: const TextStyle(color: Colors.grey)),
                              )
                         ] else ...[
-                             const Padding(
-                               padding: EdgeInsets.all(10.0),
-                               child: Text("El código será válido para una única entrada y salida.", style: TextStyle(color: Colors.grey)),
+                             Padding(
+                               padding: const EdgeInsets.all(10.0),
+                               child: Text(context.tr('one_use_desc'), style: const TextStyle(color: Colors.grey)),
                              )
                         ]
 
@@ -257,7 +258,7 @@ class _GuestScreenState extends State<GuestScreen> {
                         backgroundColor: Theme.of(context).primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                       ),
-                      child: const Text("Generar Código de Acceso", style: TextStyle(color: Colors.white, fontSize: 16)),
+                      child: Text(context.tr('generate_code'), style: const TextStyle(color: Colors.white, fontSize: 16)),
                     ),
                   ),
                 )
@@ -277,7 +278,7 @@ class _GuestScreenState extends State<GuestScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('¡Acceso Creado!'),
+        title: Text(context.tr('access_created')),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -294,11 +295,11 @@ class _GuestScreenState extends State<GuestScreen> {
                   color: Colors.white, size: 38),
             ),
             const SizedBox(height: 14),
-            const Text('¡Visita registrada!',
+            Text(context.tr('visit_registered'),
                 style:
-                    TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text('Comparte el código con tu visita',
+            Text(context.tr('share_code'),
                 style: TextStyle(color: Colors.grey[600], fontSize: 14)),
             const SizedBox(height: 28),
             // QR Card
@@ -322,7 +323,7 @@ class _GuestScreenState extends State<GuestScreen> {
                         horizontal: 22, vertical: 13),
                   ),
                   icon: const Icon(Icons.share),
-                  label: const Text('Compartir Código'),
+                  label: Text(context.tr('share_code_btn')),
                   onPressed: () =>
                       captureAndShare(cardKey, _generatedCode, context),
                 ),
@@ -332,12 +333,12 @@ class _GuestScreenState extends State<GuestScreen> {
                         horizontal: 22, vertical: 13),
                   ),
                   icon: const Icon(Icons.copy),
-                  label: const Text('Copiar Código'),
+                  label: Text(context.tr('copy_code')),
                   onPressed: () => copyCode(_generatedCode, context),
                 ),
                 TextButton.icon(
                   icon: const Icon(Icons.home_outlined),
-                  label: const Text('Volver al Inicio'),
+                  label: Text(context.tr('back_home')),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -430,18 +431,18 @@ class _GuestScreenState extends State<GuestScreen> {
     );
   }
 
-  Widget _typeChip(String label) {
-    bool isSelected = _accessType == label;
+  Widget _typeChip(String key, String label) {
+    bool isSelected = _accessType == key;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (bool selected) {
         setState(() {
-          _accessType = label;
+          _accessType = key;
         });
       },
-      selectedColor: const Color(0xFF0A84FF), // Blue background when selected
-      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white), // Always white text for dark mode visibility
+      selectedColor: const Color(0xFF0A84FF),
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white),
       backgroundColor: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? const Color(0xFF0A84FF) : Colors.transparent)),
     );

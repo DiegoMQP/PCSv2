@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 
 class LogsScreen extends StatefulWidget {
   const LogsScreen({super.key});
@@ -41,15 +42,15 @@ class _LogsScreenState extends State<LogsScreen> {
     if (user.username.isEmpty) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text("Historial")),
-        body: const Center(child: Text("Inicia sesión para ver el historial")),
+        appBar: AppBar(title: Text(context.tr('history'))),
+        body: Center(child: Text(context.tr('login_to_view'))),
       );
     }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Historial"),
+        title: Text(context.tr('history')),
         actions: [
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
         ],
@@ -61,7 +62,7 @@ class _LogsScreenState extends State<LogsScreen> {
             child: TextField(
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                hintText: "Buscar",
+                hintText: context.tr('search'),
                 filled: true,
                 fillColor: Theme.of(context).cardTheme.color,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -77,11 +78,11 @@ class _LogsScreenState extends State<LogsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                   return Center(child: Text("Error: ${snapshot.error}"));
+                   return Center(child: Text('${context.tr('error')}: ${snapshot.error}'));
                 }
                 final logs = snapshot.data ?? [];
                 if (logs.isEmpty) {
-                   return const Center(child: Text("No hay historial disponible"));
+                   return Center(child: Text(context.tr('no_history')));
                 }
                 
                 return ListView.builder(
@@ -89,7 +90,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   itemCount: logs.length,
                   itemBuilder: (context, index) {
                     final log = logs[index];
-                    final name = log['visitor_name'] ?? 'Desconocido';
+                    final name = log['visitor_name'] ?? context.tr('unknown');
                     final status = log['status'] ?? 'SCHEDULED';
                     final timestamp = log['created_at'] ?? 0;
                     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);

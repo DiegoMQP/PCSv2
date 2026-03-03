@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 
 class AdminUsersScreen extends StatefulWidget {
@@ -32,10 +33,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => StatefulBuilder(builder: (ctx, setDS) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.person_add, color: Color(0xFF0A84FF)),
-          SizedBox(width: 10),
-          Text('Nuevo Usuario'),
+        title: Row(children: [
+          const Icon(Icons.person_add, color: Color(0xFF0A84FF)),
+          const SizedBox(width: 10),
+          Text(ctx.tr('new_user')),
         ]),
         content: SingleChildScrollView(
           child: SizedBox(
@@ -45,44 +46,44 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nombre Completo *', prefixIcon: Icon(Icons.badge_outlined)),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  decoration: InputDecoration(labelText: ctx.tr('full_name_label'), prefixIcon: const Icon(Icons.badge_outlined)),
+                  validator: (v) => (v == null || v.isEmpty) ? ctx.tr('required') : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: usernameCtrl,
-                  decoration: const InputDecoration(labelText: 'Usuario / Email *', prefixIcon: Icon(Icons.alternate_email)),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  decoration: InputDecoration(labelText: ctx.tr('user_email'), prefixIcon: const Icon(Icons.alternate_email)),
+                  validator: (v) => (v == null || v.isEmpty) ? ctx.tr('required') : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: passwordCtrl,
                   obscureText: obscure,
                   decoration: InputDecoration(
-                    labelText: 'Contraseña *',
+                    labelText: ctx.tr('password_admin'),
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
                       onPressed: () => setDS(() => obscure = !obscure),
                     ),
                   ),
-                  validator: (v) => (v == null || v.length < 4) ? 'Mínimo 4 caracteres' : null,
+                  validator: (v) => (v == null || v.length < 4) ? ctx.tr('min_chars') : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: locationCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Casa / Dirección (Ej: C 053)',
-                    prefixIcon: Icon(Icons.home_outlined),
+                  decoration: InputDecoration(
+                    labelText: ctx.tr('location_admin'),
+                    prefixIcon: const Icon(Icons.home_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: role,
-                  decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
-                  items: const [
-                    DropdownMenuItem(value: 'user',  child: Text('Usuario')),
-                    DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                  decoration: InputDecoration(labelText: ctx.tr('role'), border: const OutlineInputBorder()),
+                  items: [
+                    DropdownMenuItem(value: 'user',  child: Text(ctx.tr('user_role'))),
+                    DropdownMenuItem(value: 'admin', child: Text(ctx.tr('admin_role'))),
                   ],
                   onChanged: (v) => setDS(() => role = v!),
                 ),
@@ -91,10 +92,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.tr('cancel'))),
           ElevatedButton.icon(
             icon: const Icon(Icons.save_outlined, size: 18),
-            label: const Text('Crear'),
+            label: Text(ctx.tr('create')),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
@@ -108,7 +109,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               if (!mounted) return;
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(res['success'] == true ? 'Usuario creado' : res['message']?.toString() ?? 'Error'),
+                content: Text(res['success'] == true ? context.trStatic('user_created') : res['message']?.toString() ?? context.trStatic('error')),
                 backgroundColor: res['success'] == true ? Colors.green : Colors.red,
               ));
               if (res['success'] == true) _load();
@@ -132,10 +133,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       context: context,
       barrierDismissible: false,
       builder: (_) => StatefulBuilder(builder: (ctx, setDS) => AlertDialog(
-        title: const Row(children: [
-          Icon(Icons.edit_outlined, color: Color(0xFF0A84FF)),
-          SizedBox(width: 10),
-          Text('Editar Usuario'),
+        title: Row(children: [
+          const Icon(Icons.edit_outlined, color: Color(0xFF0A84FF)),
+          const SizedBox(width: 10),
+          Text(ctx.tr('edit_user')),
         ]),
         content: SingleChildScrollView(
           child: SizedBox(
@@ -145,24 +146,24 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 TextFormField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Nombre Completo', prefixIcon: Icon(Icons.badge_outlined)),
+                  decoration: InputDecoration(labelText: ctx.tr('full_name_label'), prefixIcon: const Icon(Icons.badge_outlined)),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: usernameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Usuario / Email',
-                    prefixIcon: Icon(Icons.alternate_email),
-                    helperText: 'Cambiar esto invalidará la sesión del usuario',
+                  decoration: InputDecoration(
+                    labelText: ctx.tr('user_email'),
+                    prefixIcon: const Icon(Icons.alternate_email),
+                    helperText: ctx.tr('user_change_warning'),
                   ),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                  validator: (v) => (v == null || v.isEmpty) ? ctx.tr('required') : null,
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: passwordCtrl,
                   obscureText: obscure,
                   decoration: InputDecoration(
-                    labelText: 'Nueva Contraseña (vacío = sin cambio)',
+                    labelText: ctx.tr('new_password_hint'),
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
@@ -173,18 +174,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: locationCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Casa / Dirección',
-                    prefixIcon: Icon(Icons.home_outlined),
+                  decoration: InputDecoration(
+                    labelText: ctx.tr('house_address'),
+                    prefixIcon: const Icon(Icons.home_outlined),
                   ),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: role,
-                  decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
-                  items: const [
-                    DropdownMenuItem(value: 'user',  child: Text('Usuario')),
-                    DropdownMenuItem(value: 'admin', child: Text('Administrador')),
+                  decoration: InputDecoration(labelText: ctx.tr('role'), border: const OutlineInputBorder()),
+                  items: [
+                    DropdownMenuItem(value: 'user',  child: Text(ctx.tr('user_role'))),
+                    DropdownMenuItem(value: 'admin', child: Text(ctx.tr('admin_role'))),
                   ],
                   onChanged: (v) => setDS(() => role = v!),
                 ),
@@ -193,10 +194,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.tr('cancel'))),
           ElevatedButton.icon(
             icon: const Icon(Icons.save_outlined, size: 18),
-            label: const Text('Guardar'),
+            label: Text(ctx.tr('save')),
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white),
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
@@ -212,7 +213,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               if (!mounted) return;
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(res['success'] == true ? 'Usuario actualizado' : res['message']?.toString() ?? 'Error'),
+                content: Text(res['success'] == true ? context.trStatic('user_updated') : res['message']?.toString() ?? context.trStatic('error')),
                 backgroundColor: res['success'] == true ? Colors.green : Colors.red,
               ));
               if (res['success'] == true) _load();
@@ -227,14 +228,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Eliminar Usuario'),
-        content: Text('¿Eliminar al usuario "$username"? Esta acción no se puede deshacer.'),
+        title: Text(context.tr('delete_user')),
+        content: Text(context.tr('delete_user_confirm').replaceFirst('{name}', username)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(context.tr('cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar'),
+            child: Text(context.tr('delete')),
           ),
         ],
       ),
@@ -243,7 +244,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     final ok = await ApiService().deleteUser(username);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(ok ? 'Usuario eliminado' : 'Error al eliminar'),
+        content: Text(ok ? context.trStatic('user_deleted') : context.trStatic('error_deleting_user')),
         backgroundColor: ok ? Colors.green : Colors.red,
       ));
       if (ok) _load();
@@ -254,10 +255,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestión de Usuarios'),
+        title: Text(context.tr('manage_users')),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load, tooltip: 'Recargar'),
-          IconButton(icon: const Icon(Icons.person_add_outlined), onPressed: _showAddUser, tooltip: 'Agregar'),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _load, tooltip: context.tr('refresh')),
+          IconButton(icon: const Icon(Icons.person_add_outlined), onPressed: _showAddUser, tooltip: context.tr('add')),
           const SizedBox(width: 8),
         ],
       ),
@@ -267,7 +268,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Buscar usuario...',
+                hintText: context.tr('search_user'),
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -286,9 +287,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Icon(Icons.error_outline, size: 48, color: Colors.red),
                     const SizedBox(height: 12),
-                    const Text('Error al cargar usuarios'),
+                    Text(context.tr('error_load_users')),
                     const SizedBox(height: 8),
-                    ElevatedButton(onPressed: _load, child: const Text('Reintentar')),
+                    ElevatedButton(onPressed: _load, child: Text(context.tr('retry'))),
                   ]));
                 }
                 final all = snap.data ?? [];
@@ -303,14 +304,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
-                    Text(_search.isNotEmpty ? 'Sin resultados' : 'No hay usuarios',
+                    Text(_search.isNotEmpty ? context.tr('no_results') : context.tr('no_users'),
                         style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
                     if (_search.isEmpty) ...[
                       const SizedBox(height: 8),
                       ElevatedButton.icon(
                         onPressed: _showAddUser,
                         icon: const Icon(Icons.person_add_outlined),
-                        label: const Text('Agregar usuario'),
+                        label: Text(context.tr('add_user')),
                       ),
                     ]
                   ]));
@@ -382,7 +383,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  isAdmin ? 'Admin' : 'Usuario',
+                                  isAdmin ? context.tr('admin_role') : context.tr('user_role'),
                                   style: TextStyle(
                                     fontSize: 10, fontWeight: FontWeight.w600,
                                     color: isAdmin ? const Color(0xFF0A84FF) : Colors.green,
@@ -394,12 +395,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, color: Color(0xFF0A84FF), size: 20),
                             onPressed: () => _showEditUser(user),
-                            tooltip: 'Editar',
+                            tooltip: context.tr('edit'),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                             onPressed: () => _deleteUser(username),
-                            tooltip: 'Eliminar',
+                            tooltip: context.tr('delete'),
                           ),
                         ]),
                       );
@@ -414,7 +415,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddUser,
         icon: const Icon(Icons.person_add_outlined),
-        label: const Text('Nuevo Usuario'),
+        label: Text(context.tr('new_user')),
         backgroundColor: const Color(0xFF0A84FF),
         foregroundColor: Colors.white,
       ),
