@@ -77,7 +77,7 @@ public class Main {
         app.get("/dbstatus", ctx -> {
             String dbUrl = System.getenv("DATABASE_URL");
             String masked = dbUrl != null ? dbUrl.replaceAll(":([^:@]+)@", ":***@") : "NOT SET";
-            ctx.status(200).result("PG=" + PostgresDatabase.isAvailable() + " | FIREBASE=" + (db != null) + " | DB_URL=" + masked);
+            ctx.status(200).result("BUILD=2026-03-02c | PG=" + PostgresDatabase.isAvailable() + " | FIREBASE=" + (db != null) + " | ERR=" + PostgresDatabase.getLastError() + " | DB_URL=" + masked);
         });
         app.get("/verify-location", Main::handleVerifyLocation);
         app.get("/logs", Main::handleGetLogs);

@@ -9,8 +9,11 @@ import java.sql.Statement;
 public class PostgresDatabase {
 
     private static HikariDataSource dataSource;
+    private static String lastError = "not initialized";
 
     private PostgresDatabase() {}
+
+    public static String getLastError() { return lastError; }
 
     public static boolean init() {
         String dbUrl = System.getenv("DATABASE_URL");
@@ -40,10 +43,12 @@ public class PostgresDatabase {
 
             dataSource = new HikariDataSource(config);
             initSchema();
+            lastError = "ok";
             System.out.println("[PostgresDB] Connected and schema initialized.");
             return true;
         } catch (Exception e) {
-            System.err.println("[PostgresDB] Init failed: " + e.getMessage());
+            lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            System.err.println("[PostgresDB] Init failed: " + lastError);
             e.printStackTrace();
             return false;
         }
