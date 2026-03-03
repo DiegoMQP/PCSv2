@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/theme_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -56,11 +57,19 @@ class ProfileScreen extends StatelessWidget {
                 _buildSettingsGroup(context, [
                   _buildSettingItem(context, Icons.security, Colors.blue, "Contraseña y Seguridad"),
                   _buildSettingItem(context, Icons.notifications, Colors.pink, "Notificaciones"),
-                  // Manual dark mode toggle requires global state manager for ThemeMode. 
-                  // Assuming system theme is sufficient or user wants to force it.
-                  // _buildSettingItem(context, Icons.nightlight_round, Colors.indigo, "Modo Oscuro", 
-                  //  widget: Switch(value: Theme.of(context).brightness == Brightness.dark, onChanged: (v) {})
-                  //),
+                  Consumer<ThemeProvider>(
+                    builder: (ctx, themeProvider, _) => _buildSettingItem(
+                      ctx,
+                      themeProvider.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                      Colors.indigo,
+                      "Modo Oscuro",
+                      widget: Switch(
+                        value: themeProvider.isDarkMode,
+                        onChanged: (v) => themeProvider.toggleTheme(v),
+                        activeColor: const Color(0xFF0A84FF),
+                      ),
+                    ),
+                  ),
                 ]),
 
                 const SizedBox(height: 25),

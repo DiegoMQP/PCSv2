@@ -279,60 +279,109 @@ class _CodesScreenState extends State<CodesScreen> {
     final cardKey = GlobalKey();
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          RepaintBoundary(
-            key: cardKey,
-            child: QrCardWidget(codeData: codeData, user: user),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 10,
-            runSpacing: 8,
+      builder: (ctx) {
+        final screenH = MediaQuery.of(ctx).size.height;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87),
-                icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Copiar'),
-                onPressed: () => copyCode(code, ctx),
-              ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white),
-                icon: const Icon(Icons.share, size: 18),
-                label: const Text('Compartir'),
-                onPressed: () => captureAndShare(cardKey, code, ctx),
-              ),
-              if (codeData['qr_url'] != null)
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white),
-                  icon: const Icon(Icons.link, size: 18),
-                  label: const Text('Compartir enlace'),
-                  onPressed: () async {
-                    final url = codeData['qr_url'].toString();
-                    try {
-                      await Share.share('Mi código QR PCS: $url', subject: 'Código QR PCS');
-                    } catch (_) {
-                      await Clipboard.setData(ClipboardData(text: url));
-                      if (ctx.mounted) {
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('Enlace copiado'), backgroundColor: Colors.teal),
-                        );
-                      }
-                    }
-                  },
+              // ── QR card con zoom ──────────────────────────────
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: screenH * 0.62),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4.0,
+                    clipBehavior: Clip.none,
+                    child: RepaintBoundary(
+                      key: cardKey,
+                      child: QrCardWidget(codeData: codeData, user: user),
+                    ),
+                  ),
                 ),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black87),
-                icon: const Icon(Icons.close, size: 18),
-                label: const Text('Cerrar'),
-                onPressed: () => Navigator.pop(ctx),
+              ),
+              const SizedBox(height: 6),
+              // Hint de zoom
+              Text(
+                'Pellizca para hacer zoom · Desliza para mover',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.55),
+                  fontSize: 11,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              // ── Botones de acción (siempre visibles) ─────────
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 8,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('Copiar'),
+                    onPressed: () => copyCode(code, ctx),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A73E8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.share, size: 16),
+                    label: const Text('Compartir'),
+                    onPressed: () => captureAndShare(cardKey, code, ctx),
+                  ),
+                  if (codeData['qr_url'] != null)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      icon: const Icon(Icons.link, size: 16),
+                      label: const Text('Enlace'),
+                      onPressed: () async {
+                        final url = codeData['qr_url'].toString();
+                        try {
+                          await Share.share('Mi código QR PCS: $url',
+                              subject: 'Código QR PCS');
+                        } catch (_) {
+                          await Clipboard.setData(ClipboardData(text: url));
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Enlace copiado'),
+                                  backgroundColor: Colors.teal),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Cerrar'),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
               ),
             ],
           ),
-        ]),
-      ),
+        );
+      },
     );
   }
 

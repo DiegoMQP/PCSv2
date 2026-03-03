@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'PCS Mobile',
           debugShowCheckedModeBanner: false,
-          themeMode: ThemeMode.dark, 
+          themeMode: themeProvider.themeMode,
           darkTheme: ThemeData(
              brightness: Brightness.dark,
              useMaterial3: true,

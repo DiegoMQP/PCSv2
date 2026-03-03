@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
 
 // ─── Result Model ────────────────────────────────────────
@@ -36,6 +38,8 @@ class _ScannerScreenState extends State<ScannerScreen>
     facing: CameraFacing.back,
     torchEnabled: false,
   );
+
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // State
   bool _loading = false;
@@ -203,8 +207,11 @@ class _ScannerScreenState extends State<ScannerScreen>
   // ── Build ────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF1C1C1E),
+      key: _scaffoldKey,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      drawer: _buildSettingsDrawer(),
       body: Stack(
         children: [
           // ── Camera ────────────────────────────────────────
@@ -219,7 +226,7 @@ class _ScannerScreenState extends State<ScannerScreen>
           // ── Dark overlay when keypad shown ────────────────
           if (_showKeypad)
             Positioned.fill(
-              child: Container(color: const Color(0xFF1C1C1E)),
+              child: Container(color: Theme.of(context).scaffoldBackgroundColor),
             ),
 
           // ── Scan frame / overlay ─────────────────────────
@@ -331,26 +338,49 @@ class _ScannerScreenState extends State<ScannerScreen>
             ),
             const Spacer(),
             // Torch button (only in camera mode)
-            if (!_showKeypad)
-              GestureDetector(
-                onTap: _toggleTorch,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _torch
-                        ? const Color(0xFFFFD60A).withOpacity(0.25)
-                        : Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!_showKeypad) ...[
+                  GestureDetector(
+                    onTap: _toggleTorch,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: _torch
+                            ? const Color(0xFFFFD60A).withOpacity(0.25)
+                            : Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        _torch ? Icons.flashlight_on : Icons.flashlight_off,
+                        color: _torch ? const Color(0xFFFFD60A) : Colors.white70,
+                        size: 20,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    _torch ? Icons.flashlight_on : Icons.flashlight_off,
-                    color: _torch ? const Color(0xFFFFD60A) : Colors.white70,
-                    size: 20,
+                  const SizedBox(width: 8),
+                ],
+                // Botón de configuración (siempre visible)
+                GestureDetector(
+                  onTap: () => _scaffoldKey.currentState?.openDrawer(),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withOpacity(0.12)
+                          : Colors.black.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.settings_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
                   ),
                 ),
-              )
-            else
-              const SizedBox(width: 36),
+              ],
+            ),
           ],
         ),
       ),
@@ -370,124 +400,236 @@ class _ScannerScreenState extends State<ScannerScreen>
     );
   }
 
-  // ── Result Overlay ───────────────────────────────────────
+  // ── Result Overlay (Pantalla Completa 4 seg) ───────────────
   Widget _buildResultOverlay(_ScanResult res) {
     final isValid = res.valid;
-    final color = isValid ? const Color(0xFF32D74B) : const Color(0xFFFF453A);
-    final bgColor = isValid
-        ? const Color(0xFF32D74B).withOpacity(0.12)
-        : const Color(0xFFFF453A).withOpacity(0.12);
+    final bgColor = isValid ? const Color(0xFF34C759) : const Color(0xFFFF3B30);
 
     return GestureDetector(
       onTap: _resetAndResume,
       child: Container(
-        color: Colors.black.withOpacity(0.7),
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 32),
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2C2C2E),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: color.withOpacity(0.5), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.3),
-                  blurRadius: 30,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon circle
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: color.withOpacity(0.4), width: 2),
-                  ),
-                  child: Icon(
+        color: bgColor,
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icono grande
+                  Icon(
                     isValid ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: color,
-                    size: 42,
+                    color: Colors.white,
+                    size: 120,
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  isValid ? 'ACCESO PERMITIDO' : 'ACCESO DENEGADO',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                if (res.name != null && res.name!.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _InfoRow(
-                          icon: Icons.person_rounded,
-                          label: 'Nombre',
-                          value: res.name!,
-                        ),
-                        if (res.host != null && res.host!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _InfoRow(
-                            icon: Icons.home_rounded,
-                            label: 'Residente',
-                            value: res.host!,
-                          ),
-                        ],
-                        if (res.type != null && res.type!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _InfoRow(
-                            icon: Icons.category_rounded,
-                            label: 'Tipo',
-                            value: res.type == 'personal'
-                                ? 'Código Personal'
-                                : 'Código de Visita',
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ] else if (res.message != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  // Texto de estado
                   Text(
-                    res.message!,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 15,
+                    isValid ? 'ACCESO PERMITIDO' : 'ACCESO DENEGADO',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2.0,
                     ),
                     textAlign: TextAlign.center,
                   ),
+                  // Información del visitante
+                  if (res.name != null && res.name!.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(children: [
+                            const Icon(Icons.person_rounded, color: Colors.white70, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                res.name!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ]),
+                          if (res.host != null && res.host!.isNotEmpty) ...[
+                            const Divider(color: Colors.white30, height: 20),
+                            Row(children: [
+                              const Icon(Icons.home_rounded, color: Colors.white70, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  res.host!,
+                                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                                ),
+                              ),
+                            ]),
+                          ],
+                          if (res.type != null && res.type!.isNotEmpty) ...[
+                            const Divider(color: Colors.white30, height: 20),
+                            Row(children: [
+                              const Icon(Icons.category_rounded, color: Colors.white70, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  res.type == 'personal'
+                                      ? 'Código Personal'
+                                      : 'Código de Visita',
+                                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                                ),
+                              ),
+                            ]),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ] else if (res.message != null) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      res.message!,
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 48),
+                  Text(
+                    'Toca para continuar',
+                    style: TextStyle(color: Colors.white.withOpacity(0.65), fontSize: 13),
+                  ),
                 ],
-                const SizedBox(height: 20),
-                Text(
-                  'Toca para continuar',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.4),
-                    fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Settings Drawer ──────────────────────────────────────
+  Widget _buildSettingsDrawer() {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDark = themeProvider.isDarkMode;
+        final bg = isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7);
+        final cardColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
+        final textColor = isDark ? Colors.white : Colors.black87;
+        final subColor = isDark ? Colors.white54 : Colors.black45;
+        return Drawer(
+          backgroundColor: bg,
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A84FF).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.settings_rounded,
+                          color: Color(0xFF0A84FF), size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Text('Configuración',
+                        style: TextStyle(
+                            color: textColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child:
+                          Icon(Icons.close_rounded, color: subColor, size: 22),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 16),
+                // Sección de apariencia
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text('APARIENCIA',
+                      style: TextStyle(
+                          color: subColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2)),
+                ),
+                const SizedBox(height: 8),
+                // Toggle de tema
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (isDark ? Colors.indigo : Colors.amber)
+                            .withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isDark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                        color: isDark ? Colors.indigoAccent : Colors.amber,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Modo oscuro',
+                              style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600)),
+                          Text(
+                            isDark ? 'Tema oscuro activo' : 'Tema claro activo',
+                            style: TextStyle(color: subColor, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: isDark,
+                      onChanged: (_) => themeProvider.toggleTheme(),
+                      activeColor: const Color(0xFF0A84FF),
+                    ),
+                  ]),
+                ),
+                const Spacer(),
+                // Info de la app
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Center(
+                    child: Text('PCS Verificador v1.0.0',
+                        style: TextStyle(color: subColor, fontSize: 12)),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -577,8 +719,12 @@ class _ScannerScreenState extends State<ScannerScreen>
   // ── Keypad ───────────────────────────────────────────────
   Widget _buildKeypad() {
     final code = _codeBuffer.toString();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final keyBg = isDark ? const Color(0xFF3A3A3C) : const Color(0xFFE5E5EA);
+    final displayBg = theme.cardTheme.color ?? const Color(0xFF2C2C2E);
     return Container(
-      color: const Color(0xFF1C1C1E),
+      color: theme.scaffoldBackgroundColor,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -594,6 +740,13 @@ class _ScannerScreenState extends State<ScannerScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(_maxDigits, (i) {
                 final filled = i < code.length;
+                final emptyBg = isDark
+                    ? Colors.white.withOpacity(0.07)
+                    : Colors.black.withOpacity(0.05);
+                final emptyBorder = isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.15);
+                final emptyText = isDark ? Colors.white30 : Colors.black26;
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 6),
                   width: 36,
@@ -601,19 +754,21 @@ class _ScannerScreenState extends State<ScannerScreen>
                   decoration: BoxDecoration(
                     color: filled
                         ? const Color(0xFF0A84FF).withOpacity(0.15)
-                        : Colors.white.withOpacity(0.07),
+                        : emptyBg,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: filled
                           ? const Color(0xFF0A84FF).withOpacity(0.6)
-                          : Colors.white.withOpacity(0.1),
+                          : emptyBorder,
                     ),
                   ),
                   child: Center(
                     child: Text(
                       filled ? code[i] : '•',
                       style: TextStyle(
-                        color: filled ? Colors.white : Colors.white30,
+                        color: filled
+                            ? (isDark ? Colors.white : Colors.black87)
+                            : emptyText,
                         fontSize: filled ? 22 : 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -636,6 +791,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: _KeyButton(
                         label: k,
+                        keyBg: keyBg,
                         onTap: () {
                           if (k == '←') {
                             _onDelete();
@@ -662,8 +818,9 @@ class _ScannerScreenState extends State<ScannerScreen>
 // ─── Key Button ──────────────────────────────────────────
 class _KeyButton extends StatefulWidget {
   final String label;
+  final Color keyBg;
   final VoidCallback onTap;
-  const _KeyButton({required this.label, required this.onTap});
+  const _KeyButton({required this.label, required this.keyBg, required this.onTap});
 
   @override
   State<_KeyButton> createState() => _KeyButtonState();
@@ -675,6 +832,8 @@ class _KeyButtonState extends State<_KeyButton> {
   @override
   Widget build(BuildContext context) {
     final isAction = widget.label == '←' || widget.label == '✕';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black87;
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
       onTapUp: (_) {
@@ -687,17 +846,17 @@ class _KeyButtonState extends State<_KeyButton> {
         height: 52,
         decoration: BoxDecoration(
           color: _pressed
-              ? Colors.white.withOpacity(0.15)
+              ? (isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.08))
               : isAction
                   ? const Color(0xFF0A84FF).withOpacity(0.12)
-                  : const Color(0xFF3A3A3C),
+                  : widget.keyBg,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Center(
           child: Text(
             widget.label,
             style: TextStyle(
-              color: isAction ? const Color(0xFF0A84FF) : Colors.white,
+              color: isAction ? const Color(0xFF0A84FF) : textColor,
               fontSize: widget.label == '←' ? 20 : 22,
               fontWeight: FontWeight.w600,
             ),
@@ -748,7 +907,7 @@ class _ScanOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const frameSize = 220.0;
+    final frameSize = (size.width * 0.72).clamp(200.0, 340.0);
     const cornerLen = 28.0;
     const cornerRadius = 8.0;
     const strokeW = 3.0;
