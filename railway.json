@@ -5,7 +5,7 @@
     "buildCommand": "mvn clean package -DskipTests"
   },
   "deploy": {
-    "startCommand": "java -jar target/pcs-server-1.0-SNAPSHOT-jar-with-dependencies.jar",
+    "startCommand": "java -jar target/pcs-server-1.0-SNAPSHOT.jar",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
