@@ -4,9 +4,8 @@ import com.pcs.server.services.CodeService;
 import com.pcs.server.services.GuestService;
 import com.pcs.server.services.NotificationService;
 
-import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.QuerySnapshot;
-
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -16,51 +15,38 @@ public class Scheduler {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                long now = System.currentTimeMillis();
-
-                ApiFuture<QuerySnapshot> guestQuery = Database.get().collection("guests")
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereLessThan("expires_at", now)
-                    .get();
-
-                for (com.google.cloud.firestore.DocumentSnapshot doc : guestQuery.get().getDocuments()) {
-                    doc.getReference().update("status", "EXPIRED");
-                    String host = doc.getString("host_username");
-                    String visitor = doc.getString("visitor_name");
-                    if (host != null) {
-                        notifService.addNotification(host, "El código de visita para " + visitor + " ha expirado.", "EXPIRATION");
+                // Expire guests
+                List<Map<String, Object>> expiredGuests = guestService.getExpiredGuests();
+                for (Map<String, Object> guest : expiredGuests) {
+                    try {
+                        guestService.markGuestExpired(guest.get("id"));
+                        String host = guest.get("host_username") != null ? guest.get("host_username").toString() : null;
+                        String name = guest.get("name") != null ? guest.get("name").toString() : "Visita";
+                        if (host != null) {
+                            notifService.addNotification(host, "El código de visita para " + name + " ha expirado.", "EXPIRATION");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error expiring guest " + guest.get("id") + ": " + e.getMessage());
                     }
                 }
 
-                ApiFuture<QuerySnapshot> codeQuery = Database.get().collection("fractionation_codes")
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereLessThan("expires_at", now)
-                    .get();
-
-                for (com.google.cloud.firestore.DocumentSnapshot doc : codeQuery.get().getDocuments()) {
-                    doc.getReference().delete();
-                    String host = doc.getString("host_username");
-                    String name = doc.getString("name");
-                    if (host != null) {
-                        notifService.addNotification(host, "El código personal '" + name + "' ha sido eliminado por expiración.", "EXPIRATION");
+                // Expire codes
+                List<Map<String, Object>> expiredCodes = codeService.getExpiredCodes();
+                for (Map<String, Object> code : expiredCodes) {
+                    try {
+                        codeService.markCodeExpired(code.get("code") != null ? code.get("code").toString() : "");
+                        String host = code.get("host_username") != null ? code.get("host_username").toString() : null;
+                        String name = code.get("name") != null ? code.get("name").toString() : "Código";
+                        if (host != null) {
+                            notifService.addNotification(host, "El código personal '" + name + "' ha expirado.", "EXPIRATION");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error expiring code " + code.get("code") + ": " + e.getMessage());
                     }
                 }
 
-            } catch (com.google.api.gax.rpc.FailedPreconditionException fpe) {
-                // Firestore requires a composite index for some queries (e.g. equality + range).
-                System.err.println("Firestore index required for scheduled query: " + fpe.getMessage());
-                try {
-                    java.util.regex.Matcher m = java.util.regex.Pattern
-                        .compile("https?://[^\\s]*indexes\\?create_composite=[^\\s]+")
-                        .matcher(fpe.getMessage());
-                    if (m.find()) {
-                        System.err.println("Create the index here: " + m.group());
-                    }
-                } catch (Exception ex) {
-                    // ignore parsing issues
-                }
             } catch (Exception e) {
-                e.printStackTrace();
+                System.err.println("Scheduler error: " + e.getMessage());
             }
         }, 1, 1, TimeUnit.MINUTES);
     }
