@@ -344,6 +344,7 @@ public class Main {
     }
 
     private static void handleRegister(Context ctx) {
+        if (db == null) { ctx.status(503).result("Database not available"); return; }
         @SuppressWarnings("unchecked")
         Map<String, Object> body = ctx.bodyAsClass(Map.class);
         try {
@@ -354,14 +355,16 @@ public class Main {
                 String hashed = BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt());
                 body.put("password", hashed);
             }
-            db.collection("users").document(username).set(body).get();
+            db.collection("users").document(username).set(body).get(10, TimeUnit.SECONDS);
             ctx.status(201).result("registered");
         } catch (Exception e) {
-            ctx.status(500).result("Error registering user");
+            System.err.println("Register error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            ctx.status(500).result("Error registering user: " + e.getMessage());
         }
     }
 
     private static void handleLogin(Context ctx) {
+        if (db == null) { ctx.status(503).result("Database not available"); return; }
         @SuppressWarnings("unchecked")
         Map<String, Object> body = ctx.bodyAsClass(Map.class);
         String username = (body.get("username") != null) ? body.get("username").toString() : null;
@@ -372,7 +375,7 @@ public class Main {
         }
         try {
             // Buscar usuario en Firestore
-            com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get();
+            com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get(10, TimeUnit.SECONDS);
             if (!userDoc.exists()) {
                 ctx.status(404).result("User not found");
                 return;
@@ -397,7 +400,8 @@ public class Main {
                 ctx.status(401).result("Invalid password");
             }
         } catch (Exception e) {
-            ctx.status(500).result("Error during login");
+            System.err.println("Login error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            ctx.status(500).result("Error during login: " + e.getMessage());
         }
     }
 
