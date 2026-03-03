@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // Determine Base URL dynamically
   static String get baseUrl {
-    return 'https://prefectural-zula-nonforensically.ngrok-free.dev';
+    return 'https://pcsv2-production.up.railway.app';
   }
   
   static final ApiService _instance = ApiService._internal();

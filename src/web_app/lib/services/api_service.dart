@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // Override with: flutter build web --dart-define=API_URL=https://your-server.com
   static const String _defaultUrl =
-      'https://prefectural-zula-nonforensically.ngrok-free.dev';
+      'https://pcsv2-production.up.railway.app';
   static const String baseUrl =
       String.fromEnvironment('API_URL', defaultValue: _defaultUrl);
 
