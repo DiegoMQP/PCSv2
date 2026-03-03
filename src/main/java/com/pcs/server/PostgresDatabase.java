@@ -31,7 +31,8 @@ public class PostgresDatabase {
             config.setConnectionTimeout(30_000);
             config.setIdleTimeout(600_000);
             config.setMaxLifetime(1_800_000);
-            config.addDataSourceProperty("sslmode", "require");
+            // "prefer" works for both Railway internal (no SSL) and external (SSL) URLs
+            config.addDataSourceProperty("sslmode", "prefer");
 
             dataSource = new HikariDataSource(config);
             initSchema();
