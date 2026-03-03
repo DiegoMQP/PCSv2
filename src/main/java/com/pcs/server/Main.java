@@ -74,6 +74,11 @@ public class Main {
 
         // API Endpoints
         app.get("/health", ctx -> ctx.status(200).result("OK"));
+        app.get("/dbstatus", ctx -> {
+            String dbUrl = System.getenv("DATABASE_URL");
+            String masked = dbUrl != null ? dbUrl.replaceAll(":([^:@]+)@", ":***@") : "NOT SET";
+            ctx.status(200).result("PG=" + PostgresDatabase.isAvailable() + " | FIREBASE=" + (db != null) + " | DB_URL=" + masked);
+        });
         app.get("/verify-location", Main::handleVerifyLocation);
         app.get("/logs", Main::handleGetLogs);
         app.get("/alerts", Main::handleGetAlerts);
