@@ -24,6 +24,12 @@ public class PostgresDatabase {
             String jdbcUrl = dbUrl.startsWith("jdbc:") ? dbUrl
                     : dbUrl.replace("postgresql://", "jdbc:postgresql://");
 
+            // Append sslmode=disable for Railway internal connections (no SSL needed)
+            // This is safe: Railway internal network is already secure
+            if (!jdbcUrl.contains("sslmode")) {
+                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=disable";
+            }
+
             HikariConfig config = new HikariConfig();
             config.setJdbcUrl(jdbcUrl);
             config.setMaximumPoolSize(10);
@@ -31,8 +37,6 @@ public class PostgresDatabase {
             config.setConnectionTimeout(30_000);
             config.setIdleTimeout(600_000);
             config.setMaxLifetime(1_800_000);
-            // "prefer" works for both Railway internal (no SSL) and external (SSL) URLs
-            config.addDataSourceProperty("sslmode", "prefer");
 
             dataSource = new HikariDataSource(config);
             initSchema();
