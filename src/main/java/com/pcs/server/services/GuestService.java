@@ -80,6 +80,7 @@ public class GuestService {
             }
         }
         // Firestore fallback
+        if (db == null) throw new IllegalStateException("No database available");
         body.put("created_at", now); body.put("status", "ACTIVE"); body.put("usage_count", 0);
         if (expiresAt != null) body.put("expires_at", expiresAt);
         if (maxUses != null) body.put("max_uses", maxUses);
@@ -120,6 +121,7 @@ public class GuestService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         return db.collection("guests").whereEqualTo("host_username", hostUsername).get()
             .get().getDocuments().stream().map(d -> {
                 Map<String, Object> m = new HashMap<>(d.getData()); m.put("id", d.getId()); return m;
@@ -144,6 +146,7 @@ public class GuestService {
                 return row;
             }
         }
+        if (db == null) return null;
         return db.collection("guests").whereEqualTo("encrypted_code", encrypt(rawCode)).get()
             .get().getDocuments().stream().findFirst().map(d -> {
                 Map<String, Object> m = new HashMap<>(d.getData()); m.put("id", d.getId()); return m;
@@ -158,6 +161,7 @@ public class GuestService {
             }
             return;
         }
+        if (db == null) return;
         Map<String, Object> u = new HashMap<>();
         u.put("usage_count", com.google.cloud.firestore.FieldValue.increment(1));
         db.collection("guests").document(id.toString()).update(u).get();
@@ -179,6 +183,7 @@ public class GuestService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         return db.collection("guests").whereLessThan("expires_at", now).whereEqualTo("status","ACTIVE").get()
             .get().getDocuments().stream().map(d -> { Map<String, Object> m = new HashMap<>(d.getData()); m.put("id", d.getId()); return m; }).collect(Collectors.toList());
     }
@@ -191,6 +196,7 @@ public class GuestService {
             }
             return;
         }
+        if (db == null) return;
         Map<String, Object> u = new HashMap<>(); u.put("status","EXPIRED");
         db.collection("guests").document(id.toString()).update(u).get();
     }

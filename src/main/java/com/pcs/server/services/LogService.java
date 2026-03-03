@@ -32,6 +32,7 @@ public class LogService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         ApiFuture<QuerySnapshot> query = db.collection("access_logs").whereEqualTo("username", username).get();
         return query.get().getDocuments().stream().map(d -> d.getData()).collect(Collectors.toList());
     }
@@ -58,6 +59,7 @@ public class LogService {
                     return true;
                 }
             }
+            if (db == null) return false;
             log.put("timestamp", ts);
             db.collection("access_logs").add(log).get();
             return true;

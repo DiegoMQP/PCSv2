@@ -3,8 +3,6 @@ package com.pcs.server;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Cipher;
@@ -12,9 +10,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.mindrot.jbcrypt.BCrypt;
 
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.QuerySnapshot;
 import com.pcs.server.services.CodeService;
 import com.pcs.server.services.GuestService;
 import com.pcs.server.services.LogService;
@@ -161,39 +157,30 @@ public class Main {
             ctx.status(400).result("code required"); return;
         }
         try {
-            // 1. Check fractionation_codes (Mis Codigos)
-            com.google.cloud.firestore.DocumentSnapshot fracDoc =
-                db.collection("fractionation_codes").document(code).get().get();
-            if (fracDoc.exists() && "ACTIVE".equals(fracDoc.getString("status"))) {
-                Long expiresAt = fracDoc.getLong("expires_at");
+            // 1. Check personal codes (fractionation_codes) via service layer
+            Map<String, Object> fracData = codeService.findByCode(code);
+            if (fracData != null && "ACTIVE".equals(fracData.get("status"))) {
+                Long expiresAt = fracData.get("expires_at") != null ? ((Number) fracData.get("expires_at")).longValue() : null;
                 if (expiresAt == null || expiresAt > System.currentTimeMillis()) {
-                    Map<String, Object> resp = new HashMap<>(fracDoc.getData());
+                    Map<String, Object> resp = new HashMap<>(fracData);
                     resp.put("valid", true);
                     resp.put("source", "personal");
                     resp.remove("password");
                     ctx.status(200).json(resp); return;
                 }
             }
-            // 2. Check guests collection (visitor codes via encrypted lookup)
-            String encrypted = encrypt(code);
-            if (encrypted != null) {
-                ApiFuture<QuerySnapshot> query = db.collection("guests")
-                    .whereEqualTo("encrypted_code", encrypted)
-                    .whereEqualTo("status", "ACTIVE")
-                    .get();
-                java.util.List<com.google.cloud.firestore.QueryDocumentSnapshot> docs = query.get().getDocuments();
-                if (!docs.isEmpty()) {
-                    com.google.cloud.firestore.DocumentSnapshot guestDoc = docs.get(0);
-                    Long expiresAt = guestDoc.getLong("expires_at");
-                    if (expiresAt == null || expiresAt > System.currentTimeMillis()) {
-                        Map<String, Object> resp = new HashMap<>();
-                        resp.put("valid", true);
-                        resp.put("source", "guest");
-                        resp.put("name", guestDoc.getString("visitor_name"));
-                        resp.put("host_username", guestDoc.getString("host_username"));
-                        resp.put("access_type", guestDoc.getString("access_type"));
-                        ctx.status(200).json(resp); return;
-                    }
+            // 2. Check guest codes via service layer
+            Map<String, Object> guest = guestService.verifyCode(code);
+            if (guest != null && "ACTIVE".equals(guest.get("status"))) {
+                Long expiresAt = guest.get("expires_at") != null ? ((Number) guest.get("expires_at")).longValue() : null;
+                if (expiresAt == null || expiresAt > System.currentTimeMillis()) {
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("valid", true);
+                    resp.put("source", "guest");
+                    resp.put("name", guest.get("name"));
+                    resp.put("host_username", guest.get("host_username"));
+                    resp.put("access_type", guest.get("access_type"));
+                    ctx.status(200).json(resp); return;
                 }
             }
             ctx.status(404).json(Map.of("valid", false, "message", "Codigo invalido o expirado"));
@@ -202,60 +189,6 @@ public class Main {
         }
     }
 
-    // --- Scheduler for Expiration ---
-    private static void startExpirationScheduler() {
-        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        scheduler.scheduleAtFixedRate(() -> {
-            try {
-                // Query active codes that have expired
-                long now = System.currentTimeMillis();
-                
-                // 1. Check Guests
-                ApiFuture<QuerySnapshot> query = db.collection("guests")
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereLessThan("expires_at", now)
-                    .get();
-                
-                for (com.google.cloud.firestore.DocumentSnapshot doc : query.get().getDocuments()) {
-                     doc.getReference().update("status", "EXPIRED");
-                     String host = doc.getString("host_username");
-                     String visitor = doc.getString("visitor_name");
-                     Map<String, Object> notif = new HashMap<>();
-                     notif.put("host_username", host);
-                     notif.put("message", "El código de visita para " + visitor + " ha expirado.");
-                     notif.put("timestamp", now);
-                     notif.put("read", false);
-                     notif.put("type", "EXPIRATION");
-                     if (host != null) db.collection("notifications").add(notif);
-                }
-
-                // 2. Check Fractionation Codes (My Codes)
-                ApiFuture<QuerySnapshot> queryCodes = db.collection("fractionation_codes")
-                    .whereEqualTo("status", "ACTIVE")
-                    .whereLessThan("expires_at", now)
-                    .get();
-                
-                for (com.google.cloud.firestore.DocumentSnapshot doc : queryCodes.get().getDocuments()) {
-                     doc.getReference().delete(); // Or update to EXPIRED? "Eliminar" means delete usually.
-                     
-                     String host = doc.getString("host_username");
-                     String name = doc.getString("name");
-                     
-                     Map<String, Object> notif = new HashMap<>();
-                     notif.put("host_username", host);
-                     notif.put("message", "El código personal '" + name + "' ha sido eliminado por expiración.");
-                     notif.put("timestamp", now);
-                     notif.put("read", false);
-                     notif.put("type", "EXPIRATION");
-                     if (host != null) db.collection("notifications").add(notif);
-                }
-
-            } catch (Exception e) {
-                // e.printStackTrace(); 
-            }
-        }, 1, 1, TimeUnit.MINUTES);
-    }
-    
     // --- Encryption Helpers ---
     private static String encrypt(String data) {
         try {
@@ -513,6 +446,7 @@ public class Main {
                     ctx.json(users); return;
                 }
             }
+            if (db == null) { ctx.json(new java.util.ArrayList<>()); return; }
             com.google.api.core.ApiFuture<com.google.cloud.firestore.QuerySnapshot> query =
                 db.collection("users").get();
             java.util.List<Map<String, Object>> users = query.get().getDocuments().stream()
@@ -553,6 +487,7 @@ public class Main {
                 resp.put("location", location); resp.put("role", role);
                 ctx.status(201).json(resp); return;
             }
+            if (db == null) { ctx.status(503).result("Database not available"); return; }
             if (hashed != null) body.put("password", hashed);
             body.put("role", role);
             db.collection("users").document(username).set(body).get();
@@ -613,6 +548,7 @@ public class Main {
                 resp.put("username",targetUser); resp.put("name",newName); resp.put("location",newLoc); resp.put("role",newRole);
                 ctx.status(200).json(resp); return;
             }
+            if (db == null) { ctx.status(503).result("Database not available"); return; }
             com.google.cloud.firestore.DocumentSnapshot existing =
                 db.collection("users").document(username).get().get();
             if (!existing.exists()) { ctx.status(404).result("User not found"); return; }
@@ -648,6 +584,7 @@ public class Main {
                 }
                 ctx.status(200).result("deleted"); return;
             }
+            if (db == null) { ctx.status(503).result("Database not available"); return; }
             db.collection("users").document(username).delete().get();
             ctx.status(200).result("deleted");
         } catch (Exception e) {

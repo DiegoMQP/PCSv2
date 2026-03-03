@@ -44,6 +44,7 @@ public class CodeService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         return db.collection("fractionation_codes").whereEqualTo("host_username", username).get()
             .get().getDocuments().stream().map(d -> {
                 Map<String, Object> m = new HashMap<>(d.getData());
@@ -81,6 +82,7 @@ public class CodeService {
             }
             return;
         }
+        if (db == null) return;
         body.put("code", code);
         body.put("timestamp", now);
         if (username != null) body.put("host_username", username);
@@ -97,6 +99,7 @@ public class CodeService {
             }
             return;
         }
+        if (db == null) return;
         db.collection("fractionation_codes").document(code).delete().get();
     }
 
@@ -120,6 +123,7 @@ public class CodeService {
             }
             return;
         }
+        if (db == null) return;
         Map<String, Object> fields = new HashMap<>();
         fields.put("duration", duration);
         if (expiresAt != null) fields.put("expires_at", expiresAt);
@@ -149,6 +153,7 @@ public class CodeService {
                 return null;
             }
         }
+        if (db == null) return null;
         com.google.cloud.firestore.DocumentSnapshot doc = db.collection("fractionation_codes").document(code).get().get();
         if (!doc.exists()) return null;
         Map<String, Object> data = new HashMap<>(doc.getData());
@@ -175,6 +180,7 @@ public class CodeService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         return db.collection("fractionation_codes").whereLessThan("expires_at", now)
             .whereEqualTo("status", "ACTIVE").get().get().getDocuments().stream()
             .map(d -> { Map<String, Object> m = new HashMap<>(d.getData()); m.put("code", d.getId()); return m; })
@@ -189,6 +195,7 @@ public class CodeService {
             }
             return;
         }
+        if (db == null) return;
         Map<String, Object> u = new HashMap<>(); u.put("status", "EXPIRED");
         db.collection("fractionation_codes").document(code).update(u).get();
     }

@@ -31,6 +31,7 @@ public class NotificationService {
                 }
                 return;
             }
+            if (db == null) return;
             Map<String, Object> notif = new HashMap<>();
             notif.put("host_username", username);
             notif.put("message", message);
@@ -66,6 +67,7 @@ public class NotificationService {
                 return list;
             }
         }
+        if (db == null) return new ArrayList<>();
         return db.collection("notifications").whereEqualTo("host_username", username).get()
             .get().getDocuments().stream().map(d -> d.getData()).collect(Collectors.toList());
     }
@@ -80,6 +82,7 @@ public class NotificationService {
             }
             return;
         }
+        if (db == null) return;
         db.collection("notifications").whereEqualTo("host_username", username).get().get()
             .getDocuments().forEach(d -> d.getReference().update("read", true));
     }
