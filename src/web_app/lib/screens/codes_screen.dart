@@ -172,95 +172,70 @@ class _CodesScreenState extends State<CodesScreen> {
 
   Future<void> _shareCardToCloud(Map<String, dynamic> codeData) async {
     final codeStr = codeData['code']?.toString() ?? '';
-    // Show loading indicator
+    final name = Uri.encodeComponent(codeData['name']?.toString() ?? '');
+    final loc = Uri.encodeComponent(widget.location.isNotEmpty ? widget.location : 'Residencial');
+    final dur = codeData['duration']?.toString();
+    final hasExpiry = codeData['expires_at'] != null;
+    final type = dur == '1u' ? '1_SOLO_USO' : (hasExpiry ? 'TEMPORAL' : 'PERMANENTE');
+
+    // Build shareable URL: /#/qr/CODE?name=...&loc=...&type=...
+    final origin = html.window.location.origin;
+    final shareUrl = '$origin/#/qr/$codeStr?name=$name&loc=$loc&type=$type';
+
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF0A84FF)),
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(children: [
+          Icon(Icons.share, color: Color(0xFF0A84FF), size: 20),
+          SizedBox(width: 8),
+          Text('Compartir código',
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('Comparte este link — cualquier persona puede ver la tarjeta QR.',
+              style: TextStyle(color: Colors.white54, fontSize: 13)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1117),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: SelectableText(
+              shareUrl,
+              style: const TextStyle(color: Color(0xFF0A84FF), fontSize: 11),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton.icon(
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('Ver tarjeta'),
+            onPressed: () {
+              Navigator.pop(context);
+              html.window.open(shareUrl, '_blank');
+            },
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A84FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10))),
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Copiar link'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: shareUrl));
+              Navigator.pop(context);
+              _showSnack('Link copiado 📋', true);
+            },
+          ),
+        ],
       ),
     );
-    try {
-      final boundary =
-          _qrCardKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final bytes = byteData!.buffer.asUint8List();
-
-      final url = await ApiService().uploadCardImage(bytes, codeStr);
-
-      if (!mounted) return;
-      Navigator.pop(context); // close loading
-
-      if (url == null) {
-        _showSnack('Error al subir imagen', false);
-        return;
-      }
-
-      // Show share dialog
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(children: [
-            Icon(Icons.check_circle, color: Color(0xFF32D74B), size: 22),
-            SizedBox(width: 8),
-            Text('¡Listo para compartir!',
-                style: TextStyle(color: Colors.white, fontSize: 16)),
-          ]),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            // Preview
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(url, width: 200, fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox()),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1117),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: SelectableText(
-                url,
-                style: const TextStyle(
-                    color: Color(0xFF0A84FF), fontSize: 11),
-              ),
-            ),
-          ]),
-          actions: [
-            TextButton.icon(
-              icon: const Icon(Icons.copy, size: 16),
-              label: const Text('Copiar link'),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: url));
-                Navigator.pop(context);
-                _showSnack('Link copiado 📋', true);
-              },
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A84FF),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10))),
-              icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Abrir imagen'),
-              onPressed: () {
-                Navigator.pop(context);
-                html.window.open(url, '_blank');
-              },
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      _showSnack('Error al procesar imagen', false);
-    }
   }
 
   void _showSnack(String msg, bool ok) {

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/qr_share_screen.dart';
 
 void main() {
   runApp(
@@ -138,6 +139,24 @@ class PcsWebApp extends StatelessWidget {
       routes: {
         '/login': (_) => const LoginScreen(),
         '/dashboard': (_) => const DashboardScreen(),
+      },
+      onGenerateRoute: (settings) {
+        // /qr/183155?name=Dileo&loc=Atemajac+2172&type=PERMANENTE
+        final uri = Uri.parse(settings.name ?? '');
+        if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'qr') {
+          final code = uri.pathSegments[1];
+          final q = uri.queryParameters;
+          return MaterialPageRoute(
+            settings: settings,
+            builder: (_) => QrShareScreen(
+              code: code,
+              name: q['name'] ?? '',
+              location: q['loc'] ?? '',
+              type: q['type'] ?? 'PERMANENTE',
+            ),
+          );
+        }
+        return null;
       },
     );
   }
