@@ -155,14 +155,27 @@ class _Sidebar extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 32),
-          // Logo
+          // Logo PCS
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF0A84FF), Color(0xFF0055CC)]),
-              borderRadius: BorderRadius.circular(14),
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1A84FF), Color(0xFF0055CC)]),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0A84FF).withOpacity(0.5),
+                  blurRadius: 14, spreadRadius: 1)
+              ],
             ),
-            child: const Icon(Icons.security, color: Colors.white, size: 28),
+            alignment: Alignment.center,
+            child: const Text('PCS',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5)),
           ),
           const SizedBox(height: 10),
           const Text('PCS Access', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1)),

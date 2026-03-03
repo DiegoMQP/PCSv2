@@ -85,27 +85,33 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── Logo ──────────────────────────────────────
+                  // ── Logo PCS ──────────────────────────────────
                   Container(
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
+                      shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF0A84FF), Color(0xFF0055CC)],
+                        colors: [Color(0xFF1A84FF), Color(0xFF0055CC)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withOpacity(0.4),
+                          color: const Color(0xFF0A84FF).withOpacity(0.5),
                           blurRadius: 20,
-                          offset: const Offset(0, 8),
+                          spreadRadius: 2,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.security_rounded,
-                        color: Colors.white, size: 36),
+                    alignment: Alignment.center,
+                    child: const Text('PCS',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2)),
                   ),
                   const SizedBox(height: 24),
                   const Text(
