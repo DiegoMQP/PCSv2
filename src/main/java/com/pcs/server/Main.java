@@ -33,7 +33,17 @@ public class Main {
     private static final byte[] KEY_BYTES = "PCS_SECURE_KEY_1".getBytes(); 
 
     public static void main(String[] args) {
-        // Initialize Firebase (moved to Database wrapper)
+        // Start Javalin FIRST so /health responds immediately (Railway healthcheck)
+        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
+        Javalin app = Javalin.create(config -> {
+            config.plugins.enableCors(cors -> {
+                cors.add(it -> {
+                    it.anyHost();
+                });
+            });
+        }).start("0.0.0.0", port);
+
+        // Initialize Firebase
         try {
             // Credentials path: env var takes priority (for Railway/production), fallback to bundled file
             String credPath = System.getenv().getOrDefault(
@@ -44,19 +54,8 @@ public class Main {
             System.out.println("Firebase initialized successfully via Database wrapper.");
         } catch (Exception e) {
             e.printStackTrace();
-            System.err.println("Failed to initialize Firebase.");
-            return;
+            System.err.println("Failed to initialize Firebase. Server running without DB.");
         }
-
-        // Bind to 0.0.0.0 and read port from env (Railway sets PORT automatically)
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
-        Javalin app = Javalin.create(config -> {
-            config.plugins.enableCors(cors -> {
-                cors.add(it -> {
-                    it.anyHost();
-                });
-            });
-        }).start("0.0.0.0", port);
 
         // Initialize services
         CloudinaryService cloudinaryService = new CloudinaryService();

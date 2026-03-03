@@ -7,7 +7,7 @@
   "deploy": {
     "startCommand": "java -jar target/pcs-server-1.0-SNAPSHOT-jar-with-dependencies.jar",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 30,
+    "healthcheckTimeout": 120,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }
