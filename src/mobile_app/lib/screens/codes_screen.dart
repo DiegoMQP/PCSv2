@@ -516,7 +516,7 @@ class _CodeCard extends StatelessWidget {
           child: GestureDetector(
             onTap: onShowCard,
             child: QrImageView(
-              data: code,
+              data: code.isNotEmpty ? code : '000000',
               version: QrVersions.auto,
               size: 150.0,
               backgroundColor: Colors.white,

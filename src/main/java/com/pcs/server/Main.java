@@ -396,24 +396,42 @@ public class Main {
                          "SELECT username,password,name,location,role FROM users WHERE username=?")) {
                     ps.setString(1, username);
                     java.sql.ResultSet rs = ps.executeQuery();
-                    if (!rs.next()) { ctx.status(404).result("User not found"); return; }
-                    storedHash = rs.getString("password");
-                    userData.put("username", rs.getString("username"));
-                    userData.put("name", rs.getString("name"));
-                    userData.put("location", rs.getString("location"));
-                    userData.put("role", rs.getString("role") != null ? rs.getString("role") : "user");
+                    if (rs.next()) {
+                        storedHash = rs.getString("password");
+                        userData.put("username", rs.getString("username"));
+                        userData.put("name", rs.getString("name"));
+                        userData.put("location", rs.getString("location"));
+                        String role = rs.getString("role");
+                        userData.put("role", role != null ? role : "user");
+                    }
                 }
-            } else {
-                if (db == null) { ctx.status(503).result("Database not available"); return; }
-                com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get(10, TimeUnit.SECONDS);
-                if (!userDoc.exists()) { ctx.status(404).result("User not found"); return; }
-                storedHash = userDoc.getString("password");
-                userData.put("username", username);
-                Object name = userDoc.get("name"); userData.put("name", name != null ? name : username);
-                Object location = userDoc.get("location"); if (location != null) userData.put("location", location);
-                Object role = userDoc.get("role"); userData.put("role", role != null ? role : "user");
             }
-            if (storedHash == null) { ctx.status(500).result("User has no password set"); return; }
+            // If not found in PostgreSQL (or PG unavailable), fall back to Firestore
+            if (storedHash == null && db != null) {
+                com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get(10, TimeUnit.SECONDS);
+                if (userDoc.exists()) {
+                    storedHash = userDoc.getString("password");
+                    userData.put("username", username);
+                    Object name = userDoc.get("name"); userData.put("name", name != null ? name : username);
+                    Object location = userDoc.get("location"); if (location != null) userData.put("location", location);
+                    Object role = userDoc.get("role"); userData.put("role", role != null ? role : "user");
+                    // Migrate user to PostgreSQL for next time
+                    if (PostgresDatabase.isAvailable() && storedHash != null) {
+                        try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                             java.sql.PreparedStatement ps = conn.prepareStatement(
+                                 "INSERT INTO users(username,password,name,location,role) VALUES(?,?,?,?,?) ON CONFLICT(username) DO NOTHING")) {
+                            ps.setString(1, username);
+                            ps.setString(2, storedHash);
+                            ps.setString(3, userData.getOrDefault("name", username).toString());
+                            Object loc = userData.get("location");
+                            ps.setString(4, loc != null ? loc.toString() : null);
+                            ps.setString(5, userData.getOrDefault("role", "user").toString());
+                            ps.executeUpdate();
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+            if (storedHash == null) { ctx.status(404).result("User not found"); return; }
             if (BCrypt.checkpw(password, storedHash)) {
                 ctx.status(200).json(userData);
             } else {

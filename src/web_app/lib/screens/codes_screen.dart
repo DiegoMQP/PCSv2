@@ -299,14 +299,16 @@ class _CodeCard extends StatelessWidget {
             child: GestureDetector(
               onTap: onView,
               child: Center(
-                child: QrImageView(
-                  data: code,
-                  version: QrVersions.auto,
-                  size: 130,
-                  backgroundColor: Colors.transparent,
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0A84FF)),
-                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.white),
-                ),
+                child: code.isNotEmpty
+                    ? QrImageView(
+                        data: code,
+                        version: QrVersions.auto,
+                        size: 130,
+                        backgroundColor: Colors.transparent,
+                        eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0A84FF)),
+                        dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.white),
+                      )
+                    : const Icon(Icons.qr_code_2, size: 80, color: Colors.white24),
               ),
             ),
           ),
@@ -396,11 +398,13 @@ class QrCardWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [BoxShadow(color: const Color(0xFF1A73E8).withOpacity(0.3), blurRadius: 12, spreadRadius: 2)],
             ),
-            child: QrImageView(
-              data: code, version: QrVersions.auto, size: 200.0, backgroundColor: Colors.white,
-              eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0D47A1)),
-              dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF1A1A2E)),
-            ),
+            child: code.isNotEmpty
+                ? QrImageView(
+                    data: code, version: QrVersions.auto, size: 200.0, backgroundColor: Colors.white,
+                    eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0D47A1)),
+                    dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF1A1A2E)),
+                  )
+                : const SizedBox(width: 200, height: 200, child: Center(child: Icon(Icons.qr_code_2, size: 80, color: Colors.grey))),
           ),
         ),
         // Info
