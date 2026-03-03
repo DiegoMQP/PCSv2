@@ -3,10 +3,8 @@
 
 _flutter.loader.load({
   config: {
-    // Force local CanvasKit — avoids CDN load that fails on mobile networks
+    // Force local CanvasKit — avoids CDN failures on mobile
     canvasKitBaseUrl: "canvaskit/",
   },
-  serviceWorkerSettings: {
-    serviceWorkerVersion: {{flutter_service_worker_version}},
-  },
+  // Service worker disabled — causes stale-cache issues on mobile Chrome
 });
