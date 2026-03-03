@@ -2,49 +2,55 @@
 {{flutter_build_config}}
 
 (async () => {
-  const loading = document.getElementById('loading');
-  const errEl   = document.getElementById('load-err');
-  const spinner = document.querySelector('#loading .spinner');
+  const loading  = document.getElementById('loading');
+  const errEl    = document.getElementById('load-err');
+  const spinner  = document.getElementById('load-spinner');
+  const statusEl = document.getElementById('load-status');
+
+  function setStatus(msg) {
+    if (statusEl) statusEl.textContent = msg;
+    console.log('[PCS]', msg);
+  }
 
   function showError(msg) {
     if (spinner) spinner.style.display = 'none';
+    if (statusEl) statusEl.style.display = 'none';
     if (errEl) {
-      if (msg) errEl.innerHTML = msg;
+      errEl.innerHTML = msg || 'Error al cargar la aplicación.<br>Intenta recargar la página.';
       errEl.style.display = 'block';
     }
   }
 
-  // Use HTML renderer on mobile (no WASM needed), CanvasKit on desktop
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const renderer = isMobile ? 'html' : 'canvaskit';
-
-  // Safety timeout: if Flutter hasn't loaded in 25s, show error
+  // Timeout: show error if Flutter hasn't rendered after 30s
   const timeout = setTimeout(() => {
-    showError('Error al cargar (tiempo agotado).<br>Verifica tu conexión y recarga.');
-  }, 25000);
+    showError('Tiempo agotado al cargar.<br>Verifica tu conexión e intenta recargar.');
+  }, 30000);
+
+  setStatus('Cargando archivos...');
 
   try {
     await _flutter.loader.load({
       config: {
-        renderer: renderer,
         canvasKitBaseUrl: 'canvaskit/',
       },
       onEntrypointLoaded: async (engineInitializer) => {
+        setStatus('Iniciando motor gráfico...');
         try {
           const appRunner = await engineInitializer.initializeEngine();
+          setStatus('Ejecutando aplicación...');
           clearTimeout(timeout);
           if (loading) loading.style.display = 'none';
           await appRunner.runApp();
         } catch (e) {
           clearTimeout(timeout);
-          console.error('Engine init failed:', e);
-          showError('Error al iniciar el motor gráfico.<br>Intenta recargar la página.');
+          console.error('[PCS] Engine init failed:', e);
+          showError('Error al iniciar motor gráfico.<br><small style="opacity:0.6">' + String(e).substring(0,120) + '</small>');
         }
       },
     });
   } catch (e) {
     clearTimeout(timeout);
-    console.error('Flutter loader failed:', e);
-    showError('Error al cargar la aplicación.<br>Intenta recargar la página.');
+    console.error('[PCS] Loader failed:', e);
+    showError('Error al cargar la aplicación.<br><small style="opacity:0.6">' + String(e).substring(0,120) + '</small>');
   }
 })();

@@ -62,6 +62,13 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    #loading .status {
+      margin-top: 16px;
+      color: rgba(255,255,255,0.45);
+      font-size: 12px;
+      text-align: center;
+      min-height: 16px;
+    }
     #loading .err {
       display: none;
       margin-top: 24px;
@@ -76,7 +83,8 @@
   <div id="loading">
     <div class="title">PCS Access</div>
     <div class="sub">Control Residencial</div>
-    <div class="spinner"></div>
+    <div class="spinner" id="load-spinner"></div>
+    <div class="status" id="load-status">Iniciando...</div>
     <div class="err" id="load-err">Error al cargar la aplicación.<br>Intenta recargar la página.</div>
   </div>
   <script src="flutter_bootstrap.js"></script>
