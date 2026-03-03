@@ -14,6 +14,10 @@
     }
   }
 
+  // Use HTML renderer on mobile (no WASM needed), CanvasKit on desktop
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const renderer = isMobile ? 'html' : 'canvaskit';
+
   // Safety timeout: if Flutter hasn't loaded in 25s, show error
   const timeout = setTimeout(() => {
     showError('Error al cargar (tiempo agotado).<br>Verifica tu conexión y recarga.');
@@ -22,6 +26,7 @@
   try {
     await _flutter.loader.load({
       config: {
+        renderer: renderer,
         canvasKitBaseUrl: 'canvaskit/',
       },
       onEntrypointLoaded: async (engineInitializer) => {
