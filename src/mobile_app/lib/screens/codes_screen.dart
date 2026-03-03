@@ -1,4 +1,5 @@
-﻿import 'dart:math';
+﻿import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -155,6 +156,7 @@ class _CodesScreenState extends State<CodesScreen> {
     String duration = 'permanent';
     final options = [
       _DurationOption('permanent', 'Permanente', Icons.all_inclusive, Colors.green),
+      _DurationOption('1u',        '1 Solo Uso',  Icons.looks_one,     const Color(0xFFBF5AF2)),
       _DurationOption('30m', '30 Minutos', Icons.timer, Colors.blue),
       _DurationOption('4h', '4 Horas', Icons.access_time, Colors.orange),
       _DurationOption('24h', '24 Horas', Icons.today, Colors.deepOrange),
@@ -483,7 +485,7 @@ class _DurationOption {
   const _DurationOption(this.value, this.label, this.icon, this.color);
 }
 
-class _CodeCard extends StatelessWidget {
+class _CodeCard extends StatefulWidget {
   final Map<String, dynamic> codeData;
   final UserProvider user;
   final VoidCallback onDelete;
@@ -499,12 +501,65 @@ class _CodeCard extends StatelessWidget {
   });
 
   @override
+  State<_CodeCard> createState() => _CodeCardState();
+}
+
+class _CodeCardState extends State<_CodeCard> {
+  Timer? _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    if (widget.codeData['expires_at'] != null) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(_updateRemaining);
+      });
+    }
+  }
+
+  void _updateRemaining() {
+    final expiresAt = widget.codeData['expires_at'];
+    if (expiresAt == null) return;
+    final exp =
+        DateTime.fromMillisecondsSinceEpoch((expiresAt as num).toInt());
+    final now = DateTime.now();
+    _remaining = exp.isAfter(now) ? exp.difference(now) : Duration.zero;
+  }
+
+  String _formatRemaining() {
+    if (_remaining.inSeconds <= 0) return 'Expirado';
+    if (_remaining.inDays > 0) {
+      return '${_remaining.inDays}d ${_remaining.inHours.remainder(24)}h ${_remaining.inMinutes.remainder(60)}m';
+    }
+    if (_remaining.inHours > 0) {
+      return '${_remaining.inHours}h ${_remaining.inMinutes.remainder(60)}m ${_remaining.inSeconds.remainder(60)}s';
+    }
+    if (_remaining.inMinutes > 0) return '${_remaining.inMinutes}m ${_remaining.inSeconds.remainder(60)}s';
+    return '${_remaining.inSeconds}s';
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final code = codeData['code']?.toString() ?? '';
-    final name = codeData['name']?.toString() ?? 'Codigo';
-    final expiresAt = codeData['expires_at'];
-    final isPermanent = expiresAt == null;
+    final code = widget.codeData['code']?.toString() ?? '';
+    final name = widget.codeData['name']?.toString() ?? 'Codigo';
+    final expiresAt = widget.codeData['expires_at'];
+    final dur = widget.codeData['duration']?.toString();
+    final isOneUse = dur == '1u';
+    final isPermanent = expiresAt == null && !isOneUse;
     final primary = Theme.of(context).colorScheme.primary;
+    final typeColor = isOneUse
+        ? const Color(0xFFBF5AF2)
+        : isPermanent
+            ? Colors.green
+            : Colors.orange.shade600;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -535,27 +590,42 @@ class _CodeCard extends StatelessWidget {
                     ? Row(children: const [
                         Icon(Icons.all_inclusive, size: 12, color: Colors.green),
                         SizedBox(width: 4),
-                        Text('Permanente', style: TextStyle(fontSize: 11, color: Colors.green)),
+                        Text('Permanente',
+                            style: TextStyle(fontSize: 11, color: Colors.green)),
                       ])
-                    : Row(children: [
-                        Icon(Icons.schedule, size: 12, color: Colors.orange.shade600),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Expira: ${DateTime.fromMillisecondsSinceEpoch((expiresAt as num).toInt()).toLocal().toString().substring(0, 16)}',
-                          style: TextStyle(fontSize: 11, color: Colors.orange.shade600),
-                        ),
-                      ]),
+                    : isOneUse
+                        ? Row(children: [
+                            Icon(Icons.looks_one,
+                                size: 12, color: typeColor),
+                            const SizedBox(width: 4),
+                            Text('1 Solo Uso',
+                                style:
+                                    TextStyle(fontSize: 11, color: typeColor)),
+                          ])
+                        : Row(children: [
+                            Icon(Icons.schedule,
+                                size: 12, color: Colors.orange.shade600),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatRemaining(),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: _remaining.inSeconds > 0
+                                      ? Colors.orange.shade600
+                                      : Colors.red),
+                            ),
+                          ]),
               ]),
             ),
             IconButton(
               icon: Icon(Icons.edit_outlined, color: primary, size: 20),
               tooltip: 'Editar duración',
-              onPressed: onEdit,
+              onPressed: widget.onEdit,
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
               tooltip: 'Eliminar',
-              onPressed: onDelete,
+              onPressed: widget.onDelete,
             ),
           ]),
         ),
@@ -563,7 +633,7 @@ class _CodeCard extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: GestureDetector(
-            onTap: onShowCard,
+            onTap: widget.onShowCard,
             child: QrImageView(
               data: code.isNotEmpty ? code : '000000',
               version: QrVersions.auto,
@@ -597,7 +667,7 @@ class _CodeCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              onPressed: onShowCard,
+              onPressed: widget.onShowCard,
               icon: const Icon(Icons.qr_code, size: 15),
               label: const Text('Ver / Compartir', style: TextStyle(fontSize: 12)),
             ),

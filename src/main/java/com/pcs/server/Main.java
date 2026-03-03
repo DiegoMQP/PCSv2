@@ -77,7 +77,21 @@ public class Main {
         app.get("/dbstatus", ctx -> {
             String dbUrl = System.getenv("DATABASE_URL");
             String masked = dbUrl != null ? dbUrl.replaceAll(":([^:@]+)@", ":***@") : "NOT SET";
-            ctx.status(200).result("BUILD=2026-03-02c | PG=" + PostgresDatabase.isAvailable() + " | FIREBASE=" + (db != null) + " | ERR=" + PostgresDatabase.getLastError() + " | DB_URL=" + masked);
+            // TCP reachability test
+            String tcpResult = "unknown";
+            try {
+                java.net.Socket s = new java.net.Socket();
+                s.connect(new java.net.InetSocketAddress("postgres.railway.internal", 5432), 3000);
+                s.close();
+                tcpResult = "reachable";
+            } catch (Exception te) {
+                tcpResult = "UNREACHABLE:" + te.getMessage();
+            }
+            ctx.status(200).result("BUILD=2026-03-02d | PG=" + PostgresDatabase.isAvailable()
+                + " | FIREBASE=" + (db != null)
+                + " | ERR=" + PostgresDatabase.getLastError()
+                + " | TCP=" + tcpResult
+                + " | DB_URL=" + masked);
         });
         app.get("/verify-location", Main::handleVerifyLocation);
         app.get("/logs", Main::handleGetLogs);
@@ -171,6 +185,11 @@ public class Main {
                     resp.put("valid", true);
                     resp.put("source", "personal");
                     resp.remove("password");
+                    // Single-use: expire immediately after first successful scan
+                    String codeDuration = fracData.get("duration") != null ? fracData.get("duration").toString() : "";
+                    if ("1u".equals(codeDuration)) {
+                        try { codeService.markCodeExpired(code); } catch (Exception ex) { /* ignore */ }
+                    }
                     ctx.status(200).json(resp); return;
                 }
             }

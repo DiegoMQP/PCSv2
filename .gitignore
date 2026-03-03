@@ -108,3 +108,7 @@ src/mobile_app/android/local.properties
 src/main/Server/openJdk-25/
 
 src/main/Server/*.json
+
+_tmp_creds.txt
+_tmp_firebase.env
+test_db.py

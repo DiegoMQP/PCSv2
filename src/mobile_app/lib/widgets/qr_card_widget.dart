@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -72,7 +71,15 @@ class QrCardWidget extends StatelessWidget {
     final now = DateTime.now();
     final dateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final isPermanent = codeData['expires_at'] == null;
+    final dur = codeData['duration']?.toString();
+    final isOneUse = dur == '1u';
+    final isPermanent = codeData['expires_at'] == null && !isOneUse;
+    final badgeLabel = isOneUse ? '1 SOLO USO' : isPermanent ? 'PERMANENTE' : 'TEMPORAL';
+    final badgeColor = isOneUse
+        ? const Color(0xFFBF5AF2)
+        : isPermanent
+            ? const Color(0xFF34C759)
+            : Colors.orange;
 
     return Container(
       width: 320,
@@ -80,17 +87,19 @@ class QrCardWidget extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFF8E7),
-            Color(0xFFFFECC8),
-            Color(0xFFFFD59A)
-          ],
+          colors: [Color(0xFF0D1117), Color(0xFF161B22)],
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-              color: Colors.black26, blurRadius: 20, offset: Offset(0, 8))
+              color: const Color(0xFF0A84FF).withOpacity(0.30),
+              blurRadius: 30,
+              offset: const Offset(0, 8)),
+          const BoxShadow(
+              color: Colors.black54, blurRadius: 20, offset: Offset(0, 4)),
         ],
+        border:
+            Border.all(color: const Color(0xFF0A84FF).withOpacity(0.18), width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -98,26 +107,38 @@ class QrCardWidget extends StatelessWidget {
           // Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                  colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)]),
+                  colors: [Color(0xFF0A0A1A), Color(0xFF0D47A1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight),
               borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24)),
+                  topLeft: Radius.circular(23),
+                  topRight: Radius.circular(23)),
             ),
             child: Column(children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle),
-                child: SvgPicture.asset(
-                  'assets/images/logo.svg',
-                  width: 36,
-                  height: 36,
-                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF1A84FF), Color(0xFF0055CC)]),
+                  boxShadow: [
+                    BoxShadow(
+                        color: const Color(0xFF0A84FF).withOpacity(0.55),
+                        blurRadius: 18,
+                        spreadRadius: 2)
+                  ],
                 ),
+                alignment: Alignment.center,
+                child: const Text('PCS',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.5)),
               ),
               const SizedBox(height: 8),
               const Text('PCS ACCESS',
@@ -165,41 +186,32 @@ class QrCardWidget extends StatelessWidget {
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFF21262D),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(color: Colors.black12, blurRadius: 8)
-              ],
+              border: Border.all(color: Colors.white.withOpacity(0.07)),
             ),
             child: Column(children: [
-              _InfoRow(icon: Icons.home, label: location),
-              const Divider(height: 12),
+              _InfoRow(icon: Icons.home, label: location, color: const Color(0xFF0A84FF)),
+              const Divider(height: 12, color: Colors.white12),
               _InfoRow(icon: Icons.person, label: name),
-              const Divider(height: 12),
+              const Divider(height: 12, color: Colors.white12),
               _InfoRow(icon: Icons.calendar_today, label: dateStr),
               const SizedBox(height: 10),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isPermanent
-                      ? const Color(0xFF34C759).withOpacity(0.15)
-                      : Colors.orange.withOpacity(0.15),
+                  color: badgeColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: isPermanent
-                          ? const Color(0xFF34C759)
-                          : Colors.orange),
+                  border: Border.all(color: badgeColor),
                 ),
                 child: Text(
-                  isPermanent ? 'PERMANENTE' : 'TEMPORAL',
+                  badgeLabel,
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1,
-                      color: isPermanent
-                          ? const Color(0xFF34C759)
-                          : Colors.orange),
+                      color: badgeColor),
                 ),
               ),
             ]),
@@ -214,13 +226,14 @@ class QrCardWidget extends StatelessWidget {
                     fontSize: 36,
                     letterSpacing: 10,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF0D47A1)),
+                    color: Colors.white),
               ),
+              const SizedBox(height: 4),
               const Text('CODIGO DE ACCESO',
                   style: TextStyle(
                       fontSize: 9,
                       letterSpacing: 3,
-                      color: Color(0xFF666666),
+                      color: Colors.white38,
                       fontWeight: FontWeight.w600)),
             ]),
           ),
@@ -233,14 +246,17 @@ class QrCardWidget extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _InfoRow({required this.icon, required this.label});
+  final Color color;
+  const _InfoRow({required this.icon, required this.label, this.color = Colors.white70});
   @override
   Widget build(BuildContext context) => Row(children: [
-        Icon(icon, size: 16, color: const Color(0xFF1A73E8)),
+        Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
         Expanded(
             child: Text(label,
                 style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500))),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white70))),
       ]);
 }

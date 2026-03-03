@@ -143,6 +143,12 @@ class _GuestsScreenState extends State<GuestsScreen> {
                           Text(g['visitor_name']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
                           const SizedBox(height: 4),
                           Row(children: [
+                            if (g['code'] != null) ...[                              
+                              const Icon(Icons.key, size: 13, color: Color(0xFF0A84FF)),
+                              const SizedBox(width: 4),
+                              Text(g['code'].toString(), style: const TextStyle(fontSize: 12, color: Color(0xFF0A84FF), fontWeight: FontWeight.w700, letterSpacing: 2)),
+                              const SizedBox(width: 12),
+                            ],
                             if (g['plate'] != null) ...[
                               Icon(Icons.directions_car_outlined, size: 13, color: Colors.white38),
                               const SizedBox(width: 4),
