@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 class ApiService {
@@ -245,6 +246,28 @@ class ApiService {
       return {'success': false, 'message': r.body};
     } catch (e) {
       return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  // ─── Share Card Image ────────────────────────────────────
+  /// Uploads [pngBytes] to Cloudinary via backend and returns the public URL.
+  Future<String?> uploadCardImage(Uint8List pngBytes, String code) async {
+    try {
+      final b64 = base64Encode(pngBytes);
+      final r = await http.post(
+        Uri.parse('$baseUrl/share-card'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'image': b64, 'code': code}),
+      );
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body) as Map<String, dynamic>;
+        return data['url']?.toString();
+      }
+      print('uploadCardImage error: ${r.statusCode} ${r.body}');
+      return null;
+    } catch (e) {
+      print('uploadCardImage exception: $e');
+      return null;
     }
   }
 }

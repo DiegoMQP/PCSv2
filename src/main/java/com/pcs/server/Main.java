@@ -26,6 +26,7 @@ public class Main {
     private static GuestService guestService;
     private static LogService logService;
     private static NotificationService notifService;
+    private static CloudinaryService cloudinaryService;
     // Simple 16-byte key for AES
     private static final byte[] KEY_BYTES = "PCS_SECURE_KEY_1".getBytes(); 
 
@@ -63,7 +64,7 @@ public class Main {
         }
 
         // Initialize services
-        CloudinaryService cloudinaryService = new CloudinaryService();
+        cloudinaryService = new CloudinaryService();
         codeService = new CodeService(db, cloudinaryService);
         guestService = new GuestService(db, KEY_BYTES, cloudinaryService);
         logService = new LogService(db);
@@ -102,6 +103,7 @@ public class Main {
         app.post("/register", Main::handleRegister);
         app.post("/login", Main::handleLogin);
         app.post("/codes", Main::handleSaveCode);
+        app.post("/share-card", Main::handleShareCard);
         app.put("/codes", Main::handleUpdateCode);
         app.delete("/codes", Main::handleDeleteCode);
         app.post("/guests", Main::handleCreateGuest);
@@ -117,6 +119,32 @@ public class Main {
         
         System.out.println("Server started on port 7070");
         seedAdminUser();
+    }
+
+    // ── Share Card: receive base64 PNG → upload to Cloudinary → return URL ──────
+    private static void handleShareCard(Context ctx) {
+        ctx.header("Content-Type", "application/json");
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = ctx.bodyAsClass(Map.class);
+            String b64 = (String) body.get("image");
+            String code = (String) body.getOrDefault("code", "card_" + System.currentTimeMillis());
+            if (b64 == null || b64.isEmpty()) {
+                ctx.status(400).result("{\"error\":\"No image data\"}");
+                return;
+            }
+            // Strip data-URL prefix (data:image/png;base64,...)
+            if (b64.contains(",")) b64 = b64.substring(b64.indexOf(',') + 1);
+            byte[] pngBytes = Base64.getDecoder().decode(b64);
+            String url = cloudinaryService.uploadRawPng(pngBytes, "card_" + code);
+            if (url != null) {
+                ctx.result("{\"url\":\"" + url + "\"}");
+            } else {
+                ctx.status(500).result("{\"error\":\"Cloudinary upload failed\"}");
+            }
+        } catch (Exception e) {
+            ctx.status(500).result("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
     
     // --- Seed admin user ---

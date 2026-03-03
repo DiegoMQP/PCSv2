@@ -35,12 +35,8 @@ class ScannerScreen extends StatefulWidget {
 
 class _ScannerScreenState extends State<ScannerScreen>
     with TickerProviderStateMixin {
-  // Camera
-  final MobileScannerController _camCtrl = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-    torchEnabled: false,
-  );
+  // Camera — front on web (laptop webcam), back on mobile
+  late final MobileScannerController _camCtrl;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -73,6 +69,12 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   void initState() {
     super.initState();
+    // Initialize camera controller here so we can use kIsWeb check
+    _camCtrl = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: kIsWeb ? CameraFacing.front : CameraFacing.back,
+      torchEnabled: false,
+    );
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -128,10 +130,12 @@ class _ScannerScreenState extends State<ScannerScreen>
   // ── QR Detected ──────────────────────────────────────────
   void _onQrDetected(BarcodeCapture capture) {
     if (_loading || _cameraPaused) return;
-    final raw = capture.barcodes.firstOrNull?.rawValue;
+    final raw = capture.barcodes.firstOrNull?.rawValue?.trim();
     if (raw == null || raw.isEmpty) return;
 
-    final code = raw.length == _maxDigits ? raw : _extractCode(raw);
+    final code = raw.length == _maxDigits && RegExp(r'^\d{6}$').hasMatch(raw)
+        ? raw
+        : _extractCode(raw);
     if (code == null || code.length != _maxDigits) return;
 
     _verify(code);

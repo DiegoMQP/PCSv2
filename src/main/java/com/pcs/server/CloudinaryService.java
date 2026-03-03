@@ -53,6 +53,28 @@ public class CloudinaryService {
         }
     }
 
+    /**
+     * Uploads raw PNG bytes (e.g. a rendered card screenshot) to Cloudinary.
+     * @param pngBytes  the raw PNG byte array
+     * @param publicId  stable Cloudinary public_id (will be stored under pcs_cards/)
+     * @return          secure HTTPS URL, or null on error
+     */
+    public String uploadRawPng(byte[] pngBytes, String publicId) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = cloudinary.uploader().upload(pngBytes, ObjectUtils.asMap(
+                "public_id",     "pcs_cards/" + publicId,
+                "overwrite",     true,
+                "format",        "png",
+                "resource_type", "image"
+            ));
+            return (String) result.get("secure_url");
+        } catch (Exception e) {
+            System.err.println("[Cloudinary] Card upload failed for " + publicId + ": " + e.getMessage());
+            return null;
+        }
+    }
+
     // ── internal QR renderer ──────────────────────────────────────────────────
     private byte[] renderQrPng(String content, int size) throws Exception {
         EnumMap<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
