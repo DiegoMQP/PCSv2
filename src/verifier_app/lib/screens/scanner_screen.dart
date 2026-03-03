@@ -1,4 +1,6 @@
 // ignore_for_file: avoid_print
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -49,6 +51,10 @@ class _ScannerScreenState extends State<ScannerScreen>
   bool _torch = false;
   _ScanResult? _result;
 
+  // Windows/desktop: mobile_scanner no soporta Win32 → forzar teclado
+  static bool get _isDesktop =>
+      !kIsWeb && (Platform.isWindows || Platform.isLinux);
+
   // Keypad
   final _codeBuffer = StringBuffer();
   static const _maxDigits = 6;
@@ -76,9 +82,18 @@ class _ScannerScreenState extends State<ScannerScreen>
     );
     _checkOnline();
     _requestCameraPermission();
+    // En Windows/Linux desktop la cámara no funciona vía Win32 → usar teclado
+    if (_isDesktop) {
+      _showKeypad = true;
+    }
   }
 
   Future<void> _requestCameraPermission() async {
+    // En web y desktop el navegador/OS maneja el permiso directamente
+    if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      if (mounted) setState(() => _permissionGranted = true);
+      return;
+    }
     var status = await Permission.camera.status;
     if (status.isGranted) {
       if (mounted) setState(() => _permissionGranted = true);
@@ -214,6 +229,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   }
 
   void _toggleKeypad() {
+    if (_isDesktop) return; // en Windows siempre teclado
     HapticFeedback.selectionClick();
     setState(() {
       _showKeypad = !_showKeypad;
@@ -323,6 +339,34 @@ class _ScannerScreenState extends State<ScannerScreen>
               child: MobileScanner(
                 controller: _camCtrl,
                 onDetect: _onQrDetected,
+                errorBuilder: (context, error, child) {
+                  return Container(
+                    color: Colors.black,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.camera_alt_rounded,
+                              color: Colors.white54, size: 64),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No se pudo acceder a la cámara\n${error.errorCode.name}',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () async {
+                              await _camCtrl.start();
+                            },
+                            child: const Text('Reintentar'),
+                          )
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -762,7 +806,9 @@ class _ScannerScreenState extends State<ScannerScreen>
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
                 colors: [
-                  Colors.black.withOpacity(0.8),
+                  _showKeypad
+                      ? Theme.of(context).scaffoldBackgroundColor
+                      : Colors.black.withOpacity(0.8),
                   Colors.transparent,
                 ],
               ),
@@ -770,7 +816,36 @@ class _ScannerScreenState extends State<ScannerScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Keypad toggle
+                // En Windows: badge informativo en lugar del toggle de cámara
+                if (_isDesktop)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A84FF).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFF0A84FF).withOpacity(0.35),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.keyboard_rounded,
+                            color: Color(0xFF0A84FF), size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'Modo Windows — Ingresa el código manualmente',
+                          style: TextStyle(
+                            color: Color(0xFF0A84FF),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
                 GestureDetector(
                   onTap: _toggleKeypad,
                   child: AnimatedContainer(
