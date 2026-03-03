@@ -21,23 +21,19 @@
     }
   }
 
-  // Timeout: show error if Flutter hasn't rendered after 30s
+  // Timeout: show error if Flutter hasn't rendered after 15s
   const timeout = setTimeout(() => {
-    showError('Tiempo agotado al cargar.<br>Verifica tu conexión e intenta recargar.');
-  }, 30000);
+    showError('Error al cargar.<br>Recarga la página o intenta con otra red.');
+  }, 15000);
 
-  setStatus('Cargando archivos...');
+  setStatus('Cargando...');
 
   try {
     await _flutter.loader.load({
-      config: {
-        canvasKitBaseUrl: 'canvaskit/',
-      },
       onEntrypointLoaded: async (engineInitializer) => {
-        setStatus('Iniciando motor gráfico...');
+        setStatus('Iniciando...');
         try {
           const appRunner = await engineInitializer.initializeEngine();
-          setStatus('Ejecutando aplicación...');
           clearTimeout(timeout);
           if (loading) loading.style.display = 'none';
           await appRunner.runApp();
