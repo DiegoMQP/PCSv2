@@ -33,7 +33,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       barrierDismissible: false,
       builder: (_) => StatefulBuilder(builder: (ctx, setDS) => AlertDialog(
         title: const Row(children: [
-          Icon(Icons.person_add, color: Color(0xFF1A73E8)),
+          Icon(Icons.person_add, color: Color(0xFF0A84FF)),
           SizedBox(width: 10),
           Text('Nuevo Usuario'),
         ]),
@@ -92,7 +92,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             icon: const Icon(Icons.save_outlined, size: 18),
@@ -135,7 +135,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       barrierDismissible: false,
       builder: (_) => StatefulBuilder(builder: (ctx, setDS) => AlertDialog(
         title: const Row(children: [
-          Icon(Icons.edit_outlined, color: Color(0xFF1A73E8)),
+          Icon(Icons.edit_outlined, color: Color(0xFF0A84FF)),
           SizedBox(width: 10),
           Text('Editar Usuario'),
         ]),
@@ -196,7 +196,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
             icon: const Icon(Icons.save_outlined, size: 18),
@@ -272,7 +272,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     Text('Gestión de Usuarios', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                     SizedBox(height: 4),
                     Text('Agrega y administra usuarios del sistema para pruebas.',
-                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        style: TextStyle(color: Colors.white54, fontSize: 13)),
                   ],
                 ),
               ),
@@ -281,7 +281,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 icon: const Icon(Icons.person_add_outlined),
                 label: const Text('Nuevo Usuario'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -296,9 +296,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               hintText: 'Buscar usuarios...',
               prefixIcon: const Icon(Icons.search, color: Colors.grey),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: const Color(0xFF2C2C2E),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.white12)),
             ),
             onChanged: (v) => setState(() => _search = v.toLowerCase()),
           ),
@@ -330,15 +330,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
                 if (users.isEmpty) {
                   return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.people_outline, size: 80, color: Colors.grey.shade300),
+                    Icon(Icons.people_outline, size: 80, color: Colors.white24),
                     const SizedBox(height: 16),
                     Text(
                       _search.isNotEmpty ? 'No se encontraron usuarios' : 'No hay usuarios registrados',
-                      style: TextStyle(color: Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 18, fontWeight: FontWeight.w600),
                     ),
-                    if (_search.isEmpty) ...[
+                    if (_search.isEmpty) ...[          
                       const SizedBox(height: 8),
-                      Text('Presiona "Nuevo Usuario" para agregar uno', style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+                      Text('Presiona "Nuevo Usuario" para agregar uno', style: TextStyle(color: Colors.white24, fontSize: 13)),
                     ],
                   ]));
                 }
@@ -348,11 +348,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   children: [
                     // Stats
                     Row(children: [
-                      _CountBadge('${all.length} usuarios totales', const Color(0xFF1A73E8)),
+                      _CountBadge('${all.length} usuarios totales', const Color(0xFF0A84FF)),
                       const SizedBox(width: 8),
-                      _CountBadge('${all.where((u) => u['role'] == 'admin').length} admins', const Color(0xFFEA4335)),
+                      _CountBadge('${all.where((u) => u['role'] == 'admin').length} admins', const Color(0xFFFF453A)),
                       const SizedBox(width: 8),
-                      _CountBadge('${all.where((u) => u['role'] != 'admin').length} usuarios', const Color(0xFF34A853)),
+                      _CountBadge('${all.where((u) => u['role'] != 'admin').length} usuarios', const Color(0xFF32D74B)),
                     ]),
                     const SizedBox(height: 16),
                     Expanded(
@@ -373,21 +373,20 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                             return Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: const Color(0xFF2C2C2E),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: isAdmin ? const Color(0xFF1A73E8).withOpacity(0.3) : Colors.grey.shade100),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+                                border: Border.all(color: isAdmin ? const Color(0xFF0A84FF).withOpacity(0.3) : Colors.white.withOpacity(0.07)),
                               ),
                               child: Row(children: [
                                 // Avatar
                                 CircleAvatar(
                                   radius: 22,
-                                  backgroundColor: (isAdmin ? const Color(0xFF1A73E8) : const Color(0xFF34A853)).withOpacity(0.15),
+                                  backgroundColor: (isAdmin ? const Color(0xFF0A84FF) : const Color(0xFF32D74B)).withOpacity(0.15),
                                   child: Text(
                                     name.isNotEmpty ? name[0].toUpperCase() : '?',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: isAdmin ? const Color(0xFF1A73E8) : const Color(0xFF34A853),
+                                      color: isAdmin ? const Color(0xFF0A84FF) : const Color(0xFF32D74B),
                                       fontSize: 18,
                                     ),
                                   ),
@@ -397,33 +396,33 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
-                                    Text(username, style: TextStyle(fontSize: 12, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis),
+                                    Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white), overflow: TextOverflow.ellipsis),
+                                    Text(username, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4)), overflow: TextOverflow.ellipsis),
                                     if (location.isNotEmpty)
                                       Row(children: [
-                                        Icon(Icons.home_outlined, size: 11, color: Colors.grey.shade400),
+                                        Icon(Icons.home_outlined, size: 11, color: Colors.white38),
                                         const SizedBox(width: 3),
-                                        Text(location, style: TextStyle(fontSize: 11, color: Colors.grey.shade400), overflow: TextOverflow.ellipsis),
+                                        Text(location, style: TextStyle(fontSize: 11, color: Colors.white38), overflow: TextOverflow.ellipsis),
                                       ]),
                                     const SizedBox(height: 4),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: (isAdmin ? const Color(0xFF1A73E8) : const Color(0xFF34A853)).withOpacity(0.1),
+                                        color: (isAdmin ? const Color(0xFF0A84FF) : const Color(0xFF32D74B)).withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
                                         isAdmin ? 'Admin' : 'Usuario',
                                         style: TextStyle(
                                           fontSize: 10, fontWeight: FontWeight.w600,
-                                          color: isAdmin ? const Color(0xFF1A73E8) : const Color(0xFF34A853),
+                                          color: isAdmin ? const Color(0xFF0A84FF) : const Color(0xFF32D74B),
                                         ),
                                       ),
                                     ),
                                   ],
                                 )),
                                 IconButton(
-                                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A73E8), size: 20),
+                                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF0A84FF), size: 20),
                                   onPressed: () => _showEditUser(users[i] as Map),
                                   tooltip: 'Editar',
                                 ),

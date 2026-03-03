@@ -176,7 +176,7 @@ class ApiService {
             return {'success': true, 'message': response.body};
          }
       } else {
-         return {'success': false, 'message': response.body};
+         return {'success': false, 'message': response.body, 'statusCode': response.statusCode};
       }
     } catch (e) {
       print('Login error: $e');

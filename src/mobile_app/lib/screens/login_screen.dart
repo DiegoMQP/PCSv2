@@ -66,8 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
         final msg = result['message'].toString();
-        // Check for connection/server errors
-        if (msg.contains('Connection error') || msg.contains('500') || msg.contains('503')) {
+        final int statusCode = (result['statusCode'] as int?) ?? 0;
+        // Check for connection/server errors (5xx or connection failure)
+        if (msg.contains('Connection error') || statusCode >= 500 || msg.contains('500') || msg.contains('503') || msg.contains('Database not available')) {
             bool health = await api.checkHealth();
             if (health) {
                  setState(() {

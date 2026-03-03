@@ -46,9 +46,9 @@ class _LogsScreenState extends State<LogsScreen> {
                 final logs = snap.data ?? [];
                 if (logs.isEmpty) {
                   return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade300),
+                    Icon(Icons.receipt_long, size: 80, color: Colors.white24),
                     const SizedBox(height: 16),
-                    Text('No hay registros aún', style: TextStyle(color: Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w600)),
+                    Text('No hay registros aún', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 18, fontWeight: FontWeight.w600)),
                   ]));
                 }
                 return ListView.separated(
@@ -71,27 +71,27 @@ class _LogsScreenState extends State<LogsScreen> {
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0xFF2C2C2E),
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: Colors.grey.shade100),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
                       ),
                       child: Row(children: [
                         Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                          decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
                           child: Icon(iconData, color: color, size: 18),
                         ),
                         const SizedBox(width: 14),
                         Expanded(child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(log['message']?.toString() ?? type, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                            Text(log['message']?.toString() ?? type, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Colors.white)),
                             if (log['code'] != null)
-                              Text('Código: ${log['code']}', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                              Text('Código: ${log['code']}', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4))),
                           ],
                         )),
                         if (timeStr.isNotEmpty)
-                          Text(timeStr, style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                          Text(timeStr, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.3))),
                       ]),
                     );
                   },

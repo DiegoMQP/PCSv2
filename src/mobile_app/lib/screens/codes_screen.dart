@@ -1,4 +1,5 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -148,6 +149,131 @@ class _CodesScreenState extends State<CodesScreen> {
     );
   }
 
+  // ── Add Personal Code ────────────────────────────────────────────────
+  void _showAddCodeDialog() {
+    final nameCtrl = TextEditingController();
+    String duration = 'permanent';
+    final options = [
+      _DurationOption('permanent', 'Permanente', Icons.all_inclusive, Colors.green),
+      _DurationOption('30m', '30 Minutos', Icons.timer, Colors.blue),
+      _DurationOption('4h', '4 Horas', Icons.access_time, Colors.orange),
+      _DurationOption('24h', '24 Horas', Icons.today, Colors.deepOrange),
+      _DurationOption('1w', '1 Semana', Icons.date_range, Colors.purple),
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setDS) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Row(children: [
+          Icon(Icons.add_box_rounded, color: Color(0xFF0A84FF)),
+          SizedBox(width: 8),
+          Text('Nuevo Código Personal'),
+        ]),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del código',
+                prefixIcon: Icon(Icons.label_outline),
+                hintText: 'Ej: Mi casa, Oficina...',
+              ),
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Duración:', style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Theme.of(ctx).textTheme.bodySmall?.color,
+              )),
+            ),
+            const SizedBox(height: 8),
+            ...options.map((opt) {
+              final sel = duration == opt.value;
+              return GestureDetector(
+                onTap: () => setDS(() => duration = opt.value),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: sel ? opt.color.withOpacity(0.12) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: sel ? opt.color : Colors.grey.shade600,
+                      width: sel ? 1.8 : 1,
+                    ),
+                  ),
+                  child: Row(children: [
+                    Icon(opt.icon, color: sel ? opt.color : Colors.grey, size: 18),
+                    const SizedBox(width: 10),
+                    Text(opt.label, style: TextStyle(
+                      fontWeight: sel ? FontWeight.w700 : FontWeight.normal,
+                      color: sel ? opt.color : null,
+                    )),
+                    const Spacer(),
+                    if (sel) Icon(Icons.check_circle, color: opt.color, size: 16),
+                  ]),
+                ),
+              );
+            }),
+          ]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A84FF),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Crear Código'),
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) {
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                  content: Text('Ingresa un nombre para el código'),
+                ));
+                return;
+              }
+              final user = Provider.of<UserProvider>(context, listen: false);
+              final code = (100000 + Random().nextInt(900000)).toString();
+              final res = await ApiService().saveCode(
+                name: nameCtrl.text.trim(),
+                code: code,
+                username: user.username,
+                duration: duration,
+              );
+              if (!mounted) return;
+              Navigator.pop(ctx);
+              if (res['success'] == true) {
+                _refreshCodes();
+                // Show QR card immediately after creation
+                _showQrCardDialog({
+                  'code': code,
+                  'name': nameCtrl.text.trim(),
+                  'duration': duration,
+                  'status': 'ACTIVE',
+                  'host_username': user.username,
+                }, user);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(res['message']?.toString() ?? 'Error al crear el código'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ));
+              }
+            },
+          ),
+        ],
+      )),
+    );
+  }
+
   void _showQrCardDialog(Map<String, dynamic> codeData, UserProvider user) {
     final code = codeData['code']?.toString() ?? '';
     final cardKey = GlobalKey();
@@ -225,6 +351,13 @@ class _CodesScreenState extends State<CodesScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _showAddCodeDialog,
+        backgroundColor: const Color(0xFF0A84FF),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo Código', style: TextStyle(fontWeight: FontWeight.w600)),
+      ),
       body: FutureBuilder<List<dynamic>>(
         future: _codesFuture,
         builder: (context, snapshot) {
@@ -249,14 +382,20 @@ class _CodesScreenState extends State<CodesScreen> {
                   Text('Sin códigos activos',
                       style: TextStyle(color: Colors.grey.shade600, fontSize: 18, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  Text('Ve a "Nueva Visita" para generar un código',
+                  Text('Genera un código de acceso personal pulsando el botón +',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
                   const SizedBox(height: 28),
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Nueva Visita'),
-                    onPressed: () => Navigator.pushNamed(context, '/guest'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0A84FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Nuevo Código'),
+                    onPressed: _showAddCodeDialog,
                   ),
                 ]),
               ),

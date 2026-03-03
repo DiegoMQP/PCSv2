@@ -50,7 +50,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white),
             onPressed: () async {
               if (nameCtrl.text.isEmpty) return;
               final res = await ApiService().createGuest(
@@ -90,7 +90,7 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 icon: const Icon(Icons.person_add_outlined),
                 label: const Text('Nuevo Invitado'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8), foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xFF0A84FF), foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -106,9 +106,9 @@ class _GuestsScreenState extends State<GuestsScreen> {
                 final guests = snap.data ?? [];
                 if (guests.isEmpty) {
                   return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(Icons.people_outline, size: 80, color: Colors.grey.shade300),
+                    Icon(Icons.people_outline, size: 80, color: Colors.white24),
                     const SizedBox(height: 16),
-                    Text('No hay invitados registrados', style: TextStyle(color: Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w600)),
+                    Text('No hay invitados registrados', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 18, fontWeight: FontWeight.w600)),
                   ]));
                 }
                 return ListView.separated(
@@ -121,25 +121,25 @@ class _GuestsScreenState extends State<GuestsScreen> {
                     return Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: const Color(0xFF2C2C2E),
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
                       ),
                       child: Row(children: [
                         Container(
                           padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: const Color(0xFF34A853).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.person, color: Color(0xFF34A853), size: 22),
+                          decoration: BoxDecoration(color: const Color(0xFF32D74B).withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.person, color: Color(0xFF32D74B), size: 22),
                         ),
                         const SizedBox(width: 14),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(g['visitor_name']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                          Text(g['visitor_name']?.toString() ?? '-', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white)),
                           const SizedBox(height: 4),
                           Row(children: [
                             if (g['plate'] != null) ...[
-                              Icon(Icons.directions_car_outlined, size: 13, color: Colors.grey.shade500),
+                              Icon(Icons.directions_car_outlined, size: 13, color: Colors.white38),
                               const SizedBox(width: 4),
-                              Text(g['plate'].toString(), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                              Text(g['plate'].toString(), style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.4))),
                               const SizedBox(width: 12),
                             ],
                             Container(

@@ -37,9 +37,9 @@ class ApiService {
           return {'success': true, 'data': null};
         }
       }
-      return {'success': false, 'message': r.body};
+      return {'success': false, 'message': r.body, 'statusCode': r.statusCode};
     } catch (e) {
-      return {'success': false, 'message': 'Connection error: $e'};
+      return {'success': false, 'message': 'Connection error: $e', 'statusCode': 0};
     }
   }
 

@@ -19,6 +19,7 @@ import com.pcs.server.services.CodeService;
 import com.pcs.server.services.GuestService;
 import com.pcs.server.services.LogService;
 import com.pcs.server.services.NotificationService;
+import com.pcs.server.PostgresDatabase;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
@@ -55,6 +56,14 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed to initialize Firebase. Server running without DB.");
+        }
+
+        // Initialize PostgreSQL
+        try {
+            boolean pgOk = PostgresDatabase.init();
+            System.out.println("PostgreSQL available: " + pgOk);
+        } catch (Exception e) {
+            System.err.println("PostgreSQL init failed (will use Firestore fallback): " + e.getMessage());
         }
 
         // Initialize services
@@ -98,6 +107,21 @@ public class Main {
     // --- Seed admin user ---
     private static void seedAdminUser() {
         try {
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(
+                         "INSERT INTO users(username,password,name,location,role) VALUES(?,?,?,?,?) ON CONFLICT(username) DO NOTHING")) {
+                    ps.setString(1, "admin@admin.com");
+                    ps.setString(2, BCrypt.hashpw("password", BCrypt.gensalt()));
+                    ps.setString(3, "Administrador");
+                    ps.setString(4, "Admin");
+                    ps.setString(5, "admin");
+                    ps.executeUpdate();
+                    System.out.println("Admin user seeded in PostgreSQL.");
+                }
+                return;
+            }
+            if (db == null) return;
             com.google.cloud.firestore.DocumentSnapshot doc = db.collection("users").document("admin@admin.com").get().get();
             if (!doc.exists()) {
                 Map<String, Object> admin = new HashMap<>();
@@ -251,12 +275,7 @@ public class Main {
     private static void handleGetNotifications(Context ctx) {
         String username = ctx.queryParam("username");
         try {
-            ApiFuture<QuerySnapshot> query = db.collection("notifications")
-                .whereEqualTo("host_username", username)
-                .orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING)
-                .limit(20)
-                .get();
-            ctx.json(query.get().getDocuments().stream().map(d -> d.getData()).collect(java.util.stream.Collectors.toList()));
+            ctx.json(notifService.getNotifications(username));
         } catch (Exception e) {
             ctx.status(500).result("Error fetching notifications");
         }
@@ -267,40 +286,26 @@ public class Main {
         @SuppressWarnings("unchecked")
         Map<String, String> body = ctx.bodyAsClass(Map.class);
         String code = body.get("code");
-        
         try {
-            String encrypted = encrypt(code);
-            
-            ApiFuture<QuerySnapshot> query = db.collection("guests")
-                .whereEqualTo("encrypted_code", encrypted)
-                .whereEqualTo("status", "ACTIVE")
-                .get();
-                
-            if (!query.get().isEmpty()) {
-                com.google.cloud.firestore.DocumentSnapshot doc = query.get().getDocuments().get(0);
-                
-                String accessType = doc.getString("access_type");
-                Long uses = doc.getLong("usage_count");
-                Long maxUses = doc.getLong("max_uses");
-                
-                long currentUses = (uses != null) ? uses : 0;
-                
-                if (maxUses != null && currentUses >= maxUses) {
-                     ctx.status(403).result("Code usage limit reached");
-                     doc.getReference().update("status", "COMPLETED");
-                     return;
-                }
-                
-                doc.getReference().update("usage_count", currentUses + 1);
-                
-                if ("ONE_TIME".equals(accessType) || (maxUses != null && currentUses + 1 >= maxUses)) {
-                    doc.getReference().update("status", "COMPLETED");
-                }
-                
-                ctx.status(200).result("Access Granted");
-            } else {
-                ctx.status(404).result("Invalid or Expired Code");
+            Map<String, Object> guest = guestService.verifyCode(code);
+            if (guest == null) { ctx.status(404).result("Invalid or Expired Code"); return; }
+            String status = guest.get("status") != null ? guest.get("status").toString() : "";
+            if (!"ACTIVE".equals(status)) { ctx.status(403).result("Code not active"); return; }
+            String accessType = guest.get("access_type") != null ? guest.get("access_type").toString() : "";
+            long currentUses = guest.get("usage_count") != null ? ((Number)guest.get("usage_count")).longValue() : 0;
+            Long maxUses = guest.get("max_uses") != null ? ((Number)guest.get("max_uses")).longValue() : null;
+            if (maxUses != null && currentUses >= maxUses) {
+                ctx.status(403).result("Code usage limit reached"); return;
             }
+            guestService.incrementUsage(guest.get("id"));
+            // Log access
+            Map<String, Object> logEntry = new HashMap<>();
+            logEntry.put("username", guest.get("host_username"));
+            logEntry.put("code", code);
+            logEntry.put("event_type", "ACCESS");
+            logEntry.put("message", "Guest " + guest.get("name") + " accessed");
+            logService.createLog(logEntry);
+            ctx.status(200).result("Access Granted");
         } catch (Exception e) {
             ctx.status(500).result("Error validating code");
         }
@@ -323,12 +328,7 @@ public class Main {
     private static void handleGetAlerts(Context ctx) {
         String username = ctx.queryParam("username");
         try {
-            ApiFuture<QuerySnapshot> query = db.collection("notifications")
-                .whereEqualTo("host_username", username)
-                .orderBy("timestamp", com.google.cloud.firestore.Query.Direction.DESCENDING)
-                .limit(20)
-                .get();
-            ctx.json(query.get().getDocuments().stream().map(d -> d.getData()).collect(java.util.stream.Collectors.toList()));
+            ctx.json(notifService.getNotifications(username));
         } catch (Exception e) {
             ctx.status(500).result("Error fetching alerts");
         }
@@ -344,17 +344,32 @@ public class Main {
     }
 
     private static void handleRegister(Context ctx) {
-        if (db == null) { ctx.status(503).result("Database not available"); return; }
         @SuppressWarnings("unchecked")
         Map<String, Object> body = ctx.bodyAsClass(Map.class);
         try {
             if (body.get("username") == null) { ctx.status(400).result("username required"); return; }
             String username = body.get("username").toString();
-            // Hash password if provided
-            if (body.get("password") != null) {
-                String hashed = BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt());
-                body.put("password", hashed);
+            String rawPass = body.get("password") != null ? body.get("password").toString() : null;
+            String hashed = rawPass != null ? BCrypt.hashpw(rawPass, BCrypt.gensalt()) : null;
+            String name = body.get("name") != null ? body.get("name").toString() : username;
+            String location = body.get("location") != null ? body.get("location").toString() : null;
+            String role = body.get("role") != null ? body.get("role").toString() : "user";
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(
+                         "INSERT INTO users(username,password,name,location,role) VALUES(?,?,?,?,?) ON CONFLICT(username) DO UPDATE SET password=EXCLUDED.password,name=EXCLUDED.name,location=EXCLUDED.location,role=EXCLUDED.role")) {
+                    ps.setString(1, username);
+                    ps.setString(2, hashed);
+                    ps.setString(3, name);
+                    ps.setString(4, location);
+                    ps.setString(5, role);
+                    ps.executeUpdate();
+                }
+                ctx.status(201).result("registered");
+                return;
             }
+            if (db == null) { ctx.status(503).result("Database not available"); return; }
+            if (hashed != null) body.put("password", hashed);
             db.collection("users").document(username).set(body).get(10, TimeUnit.SECONDS);
             ctx.status(201).result("registered");
         } catch (Exception e) {
@@ -364,7 +379,6 @@ public class Main {
     }
 
     private static void handleLogin(Context ctx) {
-        if (db == null) { ctx.status(503).result("Database not available"); return; }
         @SuppressWarnings("unchecked")
         Map<String, Object> body = ctx.bodyAsClass(Map.class);
         String username = (body.get("username") != null) ? body.get("username").toString() : null;
@@ -374,27 +388,33 @@ public class Main {
             return;
         }
         try {
-            // Buscar usuario en Firestore
-            com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get(10, TimeUnit.SECONDS);
-            if (!userDoc.exists()) {
-                ctx.status(404).result("User not found");
-                return;
-            }
-            String storedHash = userDoc.getString("password");
-            if (storedHash == null) {
-                ctx.status(500).result("User has no password set");
-                return;
-            }
-            if (BCrypt.checkpw(password, storedHash)) {
-                // Return user data as JSON
-                Map<String, Object> userData = new HashMap<>();
+            String storedHash = null;
+            Map<String, Object> userData = new HashMap<>();
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(
+                         "SELECT username,password,name,location,role FROM users WHERE username=?")) {
+                    ps.setString(1, username);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (!rs.next()) { ctx.status(404).result("User not found"); return; }
+                    storedHash = rs.getString("password");
+                    userData.put("username", rs.getString("username"));
+                    userData.put("name", rs.getString("name"));
+                    userData.put("location", rs.getString("location"));
+                    userData.put("role", rs.getString("role") != null ? rs.getString("role") : "user");
+                }
+            } else {
+                if (db == null) { ctx.status(503).result("Database not available"); return; }
+                com.google.cloud.firestore.DocumentSnapshot userDoc = db.collection("users").document(username).get().get(10, TimeUnit.SECONDS);
+                if (!userDoc.exists()) { ctx.status(404).result("User not found"); return; }
+                storedHash = userDoc.getString("password");
                 userData.put("username", username);
-                Object name = userDoc.get("name");
-                userData.put("name", name != null ? name : username);
-                Object location = userDoc.get("location");
-                if (location != null) userData.put("location", location);
-                Object role = userDoc.get("role");
-                userData.put("role", role != null ? role : "user");
+                Object name = userDoc.get("name"); userData.put("name", name != null ? name : username);
+                Object location = userDoc.get("location"); if (location != null) userData.put("location", location);
+                Object role = userDoc.get("role"); userData.put("role", role != null ? role : "user");
+            }
+            if (storedHash == null) { ctx.status(500).result("User has no password set"); return; }
+            if (BCrypt.checkpw(password, storedHash)) {
                 ctx.status(200).json(userData);
             } else {
                 ctx.status(401).result("Invalid password");
@@ -448,11 +468,7 @@ public class Main {
     private static void handleGetGuests(Context ctx) {
         String username = ctx.queryParam("username");
         try {
-            com.google.api.core.ApiFuture<QuerySnapshot> query = db.collection("guests")
-                .whereEqualTo("host_username", username)
-                .limit(50)
-                .get();
-            ctx.json(query.get().getDocuments().stream().map(d -> d.getData()).collect(java.util.stream.Collectors.toList()));
+            ctx.json(guestService.getGuests(username));
         } catch (Exception e) {
             ctx.status(500).result("Error fetching guests");
         }
@@ -462,6 +478,23 @@ public class Main {
 
     private static void handleGetUsers(Context ctx) {
         try {
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(
+                         "SELECT username,name,location,role FROM users ORDER BY username")) {
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    java.util.List<Map<String, Object>> users = new java.util.ArrayList<>();
+                    while (rs.next()) {
+                        Map<String, Object> u = new HashMap<>();
+                        u.put("username", rs.getString("username"));
+                        u.put("name", rs.getString("name"));
+                        u.put("location", rs.getString("location"));
+                        u.put("role", rs.getString("role"));
+                        users.add(u);
+                    }
+                    ctx.json(users); return;
+                }
+            }
             com.google.api.core.ApiFuture<com.google.cloud.firestore.QuerySnapshot> query =
                 db.collection("users").get();
             java.util.List<Map<String, Object>> users = query.get().getDocuments().stream()
@@ -484,13 +517,27 @@ public class Main {
         try {
             if (body.get("username") == null) { ctx.status(400).result("username required"); return; }
             String username = body.get("username").toString();
-            if (body.get("password") != null) {
-                String hashed = BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt());
-                body.put("password", hashed);
+            String rawPass = body.get("password") != null ? body.get("password").toString() : null;
+            String hashed = rawPass != null ? BCrypt.hashpw(rawPass, BCrypt.gensalt()) : null;
+            String name = body.get("name") != null ? body.get("name").toString() : username;
+            String location = body.get("location") != null ? body.get("location").toString() : null;
+            String role = body.get("role") != null ? body.get("role").toString() : "user";
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement(
+                         "INSERT INTO users(username,password,name,location,role) VALUES(?,?,?,?,?)")) {
+                    ps.setString(1, username); ps.setString(2, hashed);
+                    ps.setString(3, name); ps.setString(4, location); ps.setString(5, role);
+                    ps.executeUpdate();
+                }
+                Map<String, Object> resp = new HashMap<>();
+                resp.put("username", username); resp.put("name", name);
+                resp.put("location", location); resp.put("role", role);
+                ctx.status(201).json(resp); return;
             }
-            if (body.get("role") == null) body.put("role", "user");
+            if (hashed != null) body.put("password", hashed);
+            body.put("role", role);
             db.collection("users").document(username).set(body).get();
-            // Return user without password
             body.remove("password");
             ctx.status(201).json(body);
         } catch (Exception e) {
@@ -506,23 +553,59 @@ public class Main {
             if (username == null || username.isEmpty()) {
                 ctx.status(400).result("username required"); return;
             }
+            String newUsername = body.get("new_username") != null ? body.get("new_username").toString().trim() : null;
+            boolean renaming = newUsername != null && !newUsername.isEmpty() && !newUsername.equals(username);
+            if (PostgresDatabase.isAvailable()) {
+                // Fetch existing
+                String existName=null, existLoc=null, existRole=null, existPass=null;
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement("SELECT name,location,role,password FROM users WHERE username=?")) {
+                    ps.setString(1, username);
+                    java.sql.ResultSet rs = ps.executeQuery();
+                    if (!rs.next()) { ctx.status(404).result("User not found"); return; }
+                    existName = rs.getString("name"); existLoc = rs.getString("location");
+                    existRole = rs.getString("role"); existPass = rs.getString("password");
+                }
+                String newName = body.get("name") != null ? body.get("name").toString().trim() : existName;
+                String newLoc = body.get("location") != null ? body.get("location").toString().trim() : existLoc;
+                String newRole = body.get("role") != null ? body.get("role").toString().trim() : existRole;
+                String newPass = (body.get("password") != null && !body.get("password").toString().isEmpty())
+                    ? BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt()) : existPass;
+                String targetUser = renaming ? newUsername : username;
+                if (renaming) {
+                    try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                         java.sql.PreparedStatement ps = conn.prepareStatement(
+                             "INSERT INTO users(username,password,name,location,role) VALUES(?,?,?,?,?)")) {
+                        ps.setString(1,targetUser); ps.setString(2,newPass); ps.setString(3,newName); ps.setString(4,newLoc); ps.setString(5,newRole);
+                        ps.executeUpdate();
+                    }
+                    try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                         java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE username=?")) {
+                        ps.setString(1, username); ps.executeUpdate();
+                    }
+                } else {
+                    try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                         java.sql.PreparedStatement ps = conn.prepareStatement(
+                             "UPDATE users SET name=?,location=?,role=?,password=? WHERE username=?")) {
+                        ps.setString(1,newName); ps.setString(2,newLoc); ps.setString(3,newRole); ps.setString(4,newPass); ps.setString(5,username);
+                        ps.executeUpdate();
+                    }
+                }
+                Map<String, Object> resp = new HashMap<>();
+                resp.put("username",targetUser); resp.put("name",newName); resp.put("location",newLoc); resp.put("role",newRole);
+                ctx.status(200).json(resp); return;
+            }
             com.google.cloud.firestore.DocumentSnapshot existing =
                 db.collection("users").document(username).get().get();
-            if (!existing.exists()) {
-                ctx.status(404).result("User not found"); return;
-            }
-            String newUsername = body.get("new_username") != null ? body.get("new_username").toString().trim() : null;
-            // Build updates map
+            if (!existing.exists()) { ctx.status(404).result("User not found"); return; }
             Map<String, Object> updates = new HashMap<>(existing.getData());
             if (body.get("name")     != null) updates.put("name",     body.get("name").toString().trim());
             if (body.get("location") != null) updates.put("location", body.get("location").toString().trim());
             if (body.get("role")     != null) updates.put("role",     body.get("role").toString().trim());
             if (body.get("password") != null && !body.get("password").toString().isEmpty()) {
-                String hashed = BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt());
-                updates.put("password", hashed);
+                updates.put("password", BCrypt.hashpw(body.get("password").toString(), BCrypt.gensalt()));
             }
-            if (newUsername != null && !newUsername.isEmpty() && !newUsername.equals(username)) {
-                // Username (doc ID) change: create new doc, delete old
+            if (renaming) {
                 updates.put("username", newUsername);
                 db.collection("users").document(newUsername).set(updates).get();
                 db.collection("users").document(username).delete().get();
@@ -540,6 +623,13 @@ public class Main {
         String username = ctx.queryParam("username");
         try {
             if (username == null) { ctx.status(400).result("username required"); return; }
+            if (PostgresDatabase.isAvailable()) {
+                try (java.sql.Connection conn = PostgresDatabase.getConnection();
+                     java.sql.PreparedStatement ps = conn.prepareStatement("DELETE FROM users WHERE username=?")) {
+                    ps.setString(1, username); ps.executeUpdate();
+                }
+                ctx.status(200).result("deleted"); return;
+            }
             db.collection("users").document(username).delete().get();
             ctx.status(200).result("deleted");
         } catch (Exception e) {

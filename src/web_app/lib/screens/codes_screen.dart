@@ -72,9 +72,15 @@ class _CodesScreenState extends State<CodesScreen> {
               final res = await ApiService().saveCode(name: nameCtrl.text, code: code, username: widget.username, duration: duration);
               if (!mounted) return;
               Navigator.pop(ctx);
-              _load(); // always refresh the list
               if (res['success'] == true) {
-                _showSnack('Código creado exitosamente', true);
+                _load();
+                _showQrCard({
+                  'code': code,
+                  'name': nameCtrl.text,
+                  'duration': duration,
+                  'status': 'ACTIVE',
+                  'host_username': widget.username,
+                });
               } else {
                 _showSnack(res['message']?.toString() ?? 'Error al guardar', false);
               }
@@ -180,7 +186,7 @@ class _CodesScreenState extends State<CodesScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('Nuevo Código'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A73E8),
+                  backgroundColor: const Color(0xFF0A84FF),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -198,11 +204,11 @@ class _CodesScreenState extends State<CodesScreen> {
                 if (codes.isEmpty) {
                   return Center(
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Icon(Icons.qr_code_2, size: 80, color: Colors.grey.shade300),
+                      Icon(Icons.qr_code_2, size: 80, color: Colors.white24),
                       const SizedBox(height: 16),
-                      Text('No tienes códigos aún', style: TextStyle(color: Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w600)),
+                      Text('No tienes códigos aún', style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 18, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
-                      Text('Crea un código para empezar', style: TextStyle(color: Colors.grey.shade400)),
+                      Text('Crea un código para empezar', style: TextStyle(color: Colors.white24)),
                     ]),
                   );
                 }
@@ -245,9 +251,9 @@ class _CodeCard extends StatelessWidget {
     final expires = codeData['expires_at'];
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF2C2C2E),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, 4))],
+        border: Border.all(color: Colors.white.withOpacity(0.07)),
       ),
       child: Column(
         children: [
@@ -258,23 +264,23 @@ class _CodeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                    color: const Color(0xFF0A84FF).withOpacity(0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.key, color: Color(0xFF1A73E8), size: 18),
+                  child: const Icon(Icons.key, color: Color(0xFF0A84FF), size: 18),
                 ),
                 const SizedBox(width: 10),
                 Expanded(child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15), overflow: TextOverflow.ellipsis),
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Colors.white), overflow: TextOverflow.ellipsis),
                     Text(expires != null ? 'Temporal' : 'Permanente',
-                        style: TextStyle(fontSize: 11, color: expires != null ? Colors.orange : Colors.green)),
+                        style: TextStyle(fontSize: 11, color: expires != null ? Colors.orange : const Color(0xFF32D74B))),
                   ],
                 )),
                 if (codeData['qr_url'] != null)
                   IconButton(
-                    icon: const Icon(Icons.share, color: Color(0xFF1A73E8), size: 18),
+                    icon: const Icon(Icons.share, color: Color(0xFF0A84FF), size: 18),
                     tooltip: 'Compartir enlace QR',
                     onPressed: () async {
                       final url = codeData['qr_url'].toString();
@@ -297,9 +303,9 @@ class _CodeCard extends StatelessWidget {
                   data: code,
                   version: QrVersions.auto,
                   size: 130,
-                  backgroundColor: Colors.white,
-                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0D47A1)),
-                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Color(0xFF1A1A2E)),
+                  backgroundColor: Colors.transparent,
+                  eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Color(0xFF0A84FF)),
+                  dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.white),
                 ),
               ),
             ),
@@ -308,13 +314,13 @@ class _CodeCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
-              color: Color(0xFFF0F7FF),
+              color: Color(0xFF1C1C1E),
               borderRadius: BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
             ),
             child: Column(
               children: [
                 Text(code, textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22, letterSpacing: 6, fontWeight: FontWeight.w900, color: Color(0xFF1A73E8))),
+                    style: const TextStyle(fontSize: 22, letterSpacing: 6, fontWeight: FontWeight.w900, color: Color(0xFF0A84FF))),
                 const SizedBox(height: 4),
                 TextButton.icon(
                   onPressed: onView,

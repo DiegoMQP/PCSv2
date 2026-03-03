@@ -6,6 +6,8 @@ import 'codes_screen.dart';
 import 'guests_screen.dart';
 import 'logs_screen.dart';
 import 'admin_users_screen.dart';
+import 'alerts_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,15 +26,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       const _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Registros'),
       if (user.isMainAdmin)
         const _NavItem(Icons.manage_accounts_outlined, Icons.manage_accounts, 'Gestionar Usuarios'),
+      const _NavItem(Icons.notifications_outlined, Icons.notifications, 'Alertas'),
+      const _NavItem(Icons.person_outline, Icons.person, 'Perfil'),
     ];
   }
 
   Widget _buildPage(UserProvider user) {
-    switch (_selected) {
-      case 1: return CodesScreen(username: user.username, location: user.location);
-      case 2: return GuestsScreen(username: user.username);
-      case 3: return LogsScreen(username: user.username);
-      case 4: return const AdminUsersScreen();
+    final navItems = _navItemsFor(user);
+    final label = (_selected < navItems.length) ? navItems[_selected].label : 'Inicio';
+    switch (label) {
+      case 'Mis C\u00f3digos': return CodesScreen(username: user.username, location: user.location);
+      case 'Invitados': return GuestsScreen(username: user.username);
+      case 'Registros': return LogsScreen(username: user.username);
+      case 'Gestionar Usuarios': return const AdminUsersScreen();
+      case 'Alertas': return const AlertsScreen();
+      case 'Perfil': return const ProfileScreen();
       default: return _HomeOverview(user: user, onNavigate: (i) => setState(() => _selected = i));
     }
   }
@@ -84,8 +92,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: _selected < navItems.length ? _selected : 0,
         onTap: (i) => setState(() => _selected = i),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF1A73E8),
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: const Color(0xFF0A84FF),
+        unselectedItemColor: Colors.white38,
         items: navItems.map((n) => BottomNavigationBarItem(
           icon: Icon(n.icon),
           activeIcon: Icon(n.activeIcon),
@@ -99,16 +107,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final navItems = _navItemsFor(user);
     return AppBar(
       title: Text(_selected < navItems.length ? navItems[_selected].label : ''),
-
-      backgroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: CircleAvatar(
-            backgroundColor: const Color(0xFF1A73E8).withOpacity(0.15),
-            child: Text(user.name.substring(0, 1).toUpperCase(),
-              style: const TextStyle(color: Color(0xFF1A73E8), fontWeight: FontWeight.bold)),
+            backgroundColor: const Color(0xFF0A84FF).withOpacity(0.2),
+            child: Text(user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : 'U',
+              style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -145,7 +151,7 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 240,
-      color: const Color(0xFF1A1A2E),
+      color: const Color(0xFF1C1C1E),
       child: Column(
         children: [
           const SizedBox(height: 32),
@@ -153,7 +159,7 @@ class _Sidebar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF1A73E8), Color(0xFF0D47A1)]),
+              gradient: const LinearGradient(colors: [Color(0xFF0A84FF), Color(0xFF0055CC)]),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.security, color: Colors.white, size: 28),
@@ -218,7 +224,7 @@ class _Sidebar extends StatelessWidget {
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                         fontSize: 14,
                       )),
-                    tileColor: isSelected ? const Color(0xFF1A73E8) : Colors.transparent,
+                    tileColor: isSelected ? const Color(0xFF0A84FF) : Colors.transparent,
                     onTap: () => onSelect(i),
                   ),
                 );
@@ -287,9 +293,9 @@ class _HomeOverviewState extends State<_HomeOverview> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Greeting
-          Text('Hola, ${widget.user.name}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+          Text('Hola, ${widget.user.name}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
           const SizedBox(height: 4),
-          Text('Bienvenido al panel de control de acceso.', style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+          Text('Bienvenido al panel de control de acceso.', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
           const SizedBox(height: 28),
 
           // Server status badge
@@ -339,10 +345,10 @@ class _HomeOverviewState extends State<_HomeOverview> {
               mainAxisSpacing: 16,
               childAspectRatio: 1.6,
               children: [
-                _StatCard('Códigos Activos', _loading ? '...' : '$_codesCount', Icons.qr_code_2, const Color(0xFF1A73E8)),
-                _StatCard('Registros', _loading ? '...' : '$_logsCount', Icons.receipt_long, const Color(0xFF34A853)),
-                _StatCard('Mi Casa', widget.user.location.isNotEmpty ? widget.user.location : '-', Icons.home, const Color(0xFFFBBC04)),
-                _StatCard('Mi Rol', widget.user.role, Icons.verified_user_outlined, const Color(0xFFEA4335)),
+                _StatCard('Códigos Activos', _loading ? '...' : '$_codesCount', Icons.qr_code_2, const Color(0xFF0A84FF)),
+                _StatCard('Registros', _loading ? '...' : '$_logsCount', Icons.receipt_long, const Color(0xFF32D74B)),
+                _StatCard('Mi Casa', widget.user.location.isNotEmpty ? widget.user.location : '-', Icons.home, const Color(0xFFFFD60A)),
+                _StatCard('Mi Rol', widget.user.role, Icons.verified_user_outlined, const Color(0xFFFF453A)),
               ],
             );
           }),
@@ -354,11 +360,11 @@ class _HomeOverviewState extends State<_HomeOverview> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              _QuickAction('Nuevo Código', Icons.add_circle_outline, const Color(0xFF1A73E8), () => widget.onNavigate(1)),
-              _QuickAction('Invitar Visita', Icons.person_add_outlined, const Color(0xFF34A853), () => widget.onNavigate(2)),
-              _QuickAction('Ver Registros', Icons.list_alt_outlined, const Color(0xFFFBBC04), () => widget.onNavigate(3)),
+              _QuickAction('Nuevo Código', Icons.add_circle_outline, const Color(0xFF0A84FF), () => widget.onNavigate(1)),
+              _QuickAction('Invitar Visita', Icons.person_add_outlined, const Color(0xFF32D74B), () => widget.onNavigate(2)),
+              _QuickAction('Ver Registros', Icons.list_alt_outlined, const Color(0xFFFFD60A), () => widget.onNavigate(3)),
               if (widget.user.isMainAdmin)
-                _QuickAction('Gestionar Usuarios', Icons.manage_accounts_outlined, const Color(0xFFEA4335), () => widget.onNavigate(4)),
+                _QuickAction('Gestionar Usuarios', Icons.manage_accounts_outlined, const Color(0xFFFF453A), () => widget.onNavigate(4)),
             ],
           ),
         ],
@@ -378,9 +384,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        color: const Color(0xFF2C2C2E),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,14 +394,14 @@ class _StatCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, color: color, size: 20),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+              Text(title, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.45))),
             ],
           ),
         ],
@@ -420,17 +426,20 @@ class _QuickAction extends StatelessWidget {
         width: 160,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+          color: const Color(0xFF2C2C2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 28),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 22),
+            ),
             const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.white)),
           ],
         ),
       ),
