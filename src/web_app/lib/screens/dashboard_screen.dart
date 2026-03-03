@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/language_provider.dart';
 import '../services/api_service.dart';
 import 'codes_screen.dart';
 import 'guests_screen.dart';
@@ -20,36 +21,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<_NavItem> _navItemsFor(UserProvider user) {
     return [
-      const _NavItem(Icons.dashboard_outlined, Icons.dashboard, 'Inicio'),
-      const _NavItem(Icons.qr_code_2_outlined, Icons.qr_code_2, 'Mis Códigos'),
-      const _NavItem(Icons.people_outline, Icons.people, 'Invitados'),
-      const _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'Registros'),
+      const _NavItem(Icons.dashboard_outlined, Icons.dashboard, 'home'),
+      const _NavItem(Icons.qr_code_2_outlined, Icons.qr_code_2, 'codes'),
+      const _NavItem(Icons.people_outline, Icons.people, 'guests'),
+      const _NavItem(Icons.receipt_long_outlined, Icons.receipt_long, 'logs'),
       if (user.isMainAdmin)
-        const _NavItem(Icons.manage_accounts_outlined, Icons.manage_accounts, 'Gestionar Usuarios'),
-      const _NavItem(Icons.notifications_outlined, Icons.notifications, 'Alertas'),
-      const _NavItem(Icons.person_outline, Icons.person, 'Perfil'),
+        const _NavItem(Icons.manage_accounts_outlined, Icons.manage_accounts, 'manageUsers'),
+      const _NavItem(Icons.notifications_outlined, Icons.notifications, 'alerts'),
+      const _NavItem(Icons.person_outline, Icons.person, 'profile'),
     ];
   }
 
   Widget _buildPage(UserProvider user) {
     final navItems = _navItemsFor(user);
-    final label = (_selected < navItems.length) ? navItems[_selected].label : 'Inicio';
-    switch (label) {
-      case 'Mis C\u00f3digos': return CodesScreen(username: user.username, location: user.location);
-      case 'Invitados': return GuestsScreen(username: user.username);
-      case 'Registros': return LogsScreen(username: user.username);
-      case 'Gestionar Usuarios': return const AdminUsersScreen();
-      case 'Alertas': return const AlertsScreen();
-      case 'Perfil': return const ProfileScreen();
-      default: return _HomeOverview(user: user, onNavigate: (i) => setState(() => _selected = i));
+    final key = (_selected < navItems.length) ? navItems[_selected].labelKey : 'home';
+    switch (key) {
+      case 'codes':       return CodesScreen(username: user.username, location: user.location);
+      case 'guests':      return GuestsScreen(username: user.username);
+      case 'logs':        return LogsScreen(username: user.username);
+      case 'manageUsers': return const AdminUsersScreen();
+      case 'alerts':      return const AlertsScreen();
+      case 'profile':     return const ProfileScreen();
+      default:            return _HomeOverview(user: user, onNavigate: (i) => setState(() => _selected = i));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<UserProvider>(context);
+    final user     = Provider.of<UserProvider>(context);
+    final lang     = Provider.of<LanguageProvider>(context);
     final navItems = _navItemsFor(user);
-    final isWide = MediaQuery.of(context).size.width >= 720;
+    final isWide   = MediaQuery.of(context).size.width >= 720;
 
     if (isWide) {
       return Scaffold(
@@ -64,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Expanded(
               child: Scaffold(
-                appBar: _buildAppBar(context, user),
+                appBar: _buildAppBar(context, user, lang, navItems),
                 body: _buildPage(user),
               ),
             ),
@@ -74,7 +76,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     return Scaffold(
-      appBar: _buildAppBar(context, user),
+      appBar: _buildAppBar(context, user, lang, navItems),
       drawer: Drawer(
         child: _Sidebar(
           selected: _selected,
@@ -97,24 +99,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
         items: navItems.map((n) => BottomNavigationBarItem(
           icon: Icon(n.icon),
           activeIcon: Icon(n.activeIcon),
-          label: n.label,
+          label: L.of(lang, n.labelKey),
         )).toList(),
       ),
     );
   }
 
-  AppBar _buildAppBar(BuildContext context, UserProvider user) {
-    final navItems = _navItemsFor(user);
+  AppBar _buildAppBar(BuildContext context, UserProvider user, LanguageProvider lang, List<_NavItem> navItems) {
     return AppBar(
-      title: Text(_selected < navItems.length ? navItems[_selected].label : ''),
+      title: Text(_selected < navItems.length ? L.of(lang, navItems[_selected].labelKey) : ''),
       surfaceTintColor: Colors.transparent,
       actions: [
+        // Language toggle
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: lang.toggle,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2C2C2E),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.language_rounded, size: 16, color: Color(0xFF0A84FF)),
+                  const SizedBox(width: 6),
+                  Text(
+                    lang.isEnglish ? 'EN' : 'ES',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.swap_horiz_rounded, size: 15, color: Colors.white38),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // User avatar
         Padding(
           padding: const EdgeInsets.only(right: 16),
           child: CircleAvatar(
             backgroundColor: const Color(0xFF0A84FF).withOpacity(0.2),
-            child: Text(user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : 'U',
-              style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold)),
+            child: Text(
+              user.name.isNotEmpty ? user.name.substring(0, 1).toUpperCase() : 'U',
+              style: const TextStyle(color: Color(0xFF0A84FF), fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       ],
@@ -130,8 +166,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _NavItem {
   final IconData icon;
   final IconData activeIcon;
-  final String label;
-  const _NavItem(this.icon, this.activeIcon, this.label);
+  final String labelKey;
+  const _NavItem(this.icon, this.activeIcon, this.labelKey);
 }
 
 // ─────────────── Sidebar ─────────────────────────────────
@@ -149,38 +185,24 @@ class _Sidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+
     return Container(
       width: 240,
       color: const Color(0xFF1C1C1E),
       child: Column(
         children: [
           const SizedBox(height: 32),
-          // Logo PCS
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A84FF), Color(0xFF0055CC)]),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0A84FF).withOpacity(0.5),
-                  blurRadius: 14, spreadRadius: 1)
-              ],
-            ),
-            alignment: Alignment.center,
-            child: const Text('PCS',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5)),
-          ),
-          const SizedBox(height: 10),
-          const Text('PCS Access', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1)),
+          // App title (without circular logo)
+          const Text('PCS Access',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1)),
           const SizedBox(height: 4),
-          Text('Control Residencial', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+          Text(L.of(lang, 'sidebarSub'),
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
           const SizedBox(height: 32),
           // User chip
           Container(
@@ -231,7 +253,7 @@ class _Sidebar extends StatelessWidget {
                       color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
                       size: 20,
                     ),
-                    title: Text(items[i].label,
+                    title: Text(L.of(lang, items[i].labelKey),
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -250,7 +272,7 @@ class _Sidebar extends StatelessWidget {
             child: ListTile(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               leading: Icon(Icons.logout, color: Colors.white.withOpacity(0.5), size: 20),
-              title: Text('Cerrar Sesión', style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+              title: Text(L.of(lang, 'logout'), style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
               onTap: onLogout,
             ),
           ),
@@ -300,15 +322,26 @@ class _HomeOverviewState extends State<_HomeOverview> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
+
+    final statusColor = _loading ? Colors.grey : _serverOnline ? Colors.green : Colors.red;
+    final statusLabel = _loading
+        ? L.of(lang, 'checking')
+        : _serverOnline
+            ? L.of(lang, 'serverOnline')
+            : L.of(lang, 'serverOffline');
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Greeting
-          Text('Hola, ${widget.user.name}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+          Text('${L.of(lang, 'greeting')} ${widget.user.name}',
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
           const SizedBox(height: 4),
-          Text('Bienvenido al panel de control de acceso.', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
+          Text(L.of(lang, 'welcomeText'),
+              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14)),
           const SizedBox(height: 28),
 
           // Server status badge
@@ -317,29 +350,20 @@ class _HomeOverviewState extends State<_HomeOverview> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: (_loading ? Colors.grey : _serverOnline ? Colors.green : Colors.red).withOpacity(0.1),
+                  color: statusColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _loading ? Colors.grey : _serverOnline ? Colors.green : Colors.red),
+                  border: Border.all(color: statusColor),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: 8, height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _loading ? Colors.grey : _serverOnline ? Colors.green : Colors.red,
-                      ),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      _loading ? 'Verificando...' : _serverOnline ? 'Servidor en línea' : 'Servidor desconectado',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _loading ? Colors.grey : _serverOnline ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(statusLabel,
+                        style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -358,26 +382,40 @@ class _HomeOverviewState extends State<_HomeOverview> {
               mainAxisSpacing: 16,
               childAspectRatio: 1.6,
               children: [
-                _StatCard('Códigos Activos', _loading ? '...' : '$_codesCount', Icons.qr_code_2, const Color(0xFF0A84FF)),
-                _StatCard('Registros', _loading ? '...' : '$_logsCount', Icons.receipt_long, const Color(0xFF32D74B)),
-                _StatCard('Mi Casa', widget.user.location.isNotEmpty ? widget.user.location : '-', Icons.home, const Color(0xFFFFD60A)),
-                _StatCard('Mi Rol', widget.user.role, Icons.verified_user_outlined, const Color(0xFFFF453A)),
+                _StatCard(L.of(lang, 'activeCodes'), _loading ? '...' : '$_codesCount',
+                    Icons.qr_code_2, const Color(0xFF0A84FF)),
+                _StatCard(L.of(lang, 'logs'), _loading ? '...' : '$_logsCount',
+                    Icons.receipt_long, const Color(0xFF32D74B)),
+                _StatCard(L.of(lang, 'myHome'),
+                    widget.user.location.isNotEmpty ? widget.user.location : '-',
+                    Icons.home, const Color(0xFFFFD60A)),
+                _StatCard(L.of(lang, 'myRole'), widget.user.role,
+                    Icons.verified_user_outlined, const Color(0xFFFF453A)),
               ],
             );
           }),
           const SizedBox(height: 32),
 
-          const Text('Acciones Rápidas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+          Text(L.of(lang, 'quickActions'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              _QuickAction('Nuevo Código', Icons.add_circle_outline, const Color(0xFF0A84FF), () => widget.onNavigate(1)),
-              _QuickAction('Invitar Visita', Icons.person_add_outlined, const Color(0xFF32D74B), () => widget.onNavigate(2)),
-              _QuickAction('Ver Registros', Icons.list_alt_outlined, const Color(0xFFFFD60A), () => widget.onNavigate(3)),
+              _QuickAction(L.of(lang, 'newCode'),
+                  Icons.add_circle_outline, const Color(0xFF0A84FF),
+                  () => widget.onNavigate(1)),
+              _QuickAction(L.of(lang, 'inviteGuest'),
+                  Icons.person_add_outlined, const Color(0xFF32D74B),
+                  () => widget.onNavigate(2)),
+              _QuickAction(L.of(lang, 'viewLogs'),
+                  Icons.list_alt_outlined, const Color(0xFFFFD60A),
+                  () => widget.onNavigate(3)),
               if (widget.user.isMainAdmin)
-                _QuickAction('Gestionar Usuarios', Icons.manage_accounts_outlined, const Color(0xFFFF453A), () => widget.onNavigate(4)),
+                _QuickAction(L.of(lang, 'manageUsers'),
+                    Icons.manage_accounts_outlined, const Color(0xFFFF453A),
+                    () => widget.onNavigate(4)),
             ],
           ),
         ],

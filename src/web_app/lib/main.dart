@@ -2,14 +2,18 @@
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/language_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/qr_share_screen.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => UserProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+      ],
       child: const PcsWebApp(),
     ),
   );
@@ -20,9 +24,11 @@ class PcsWebApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context);
     return MaterialApp(
       title: 'PCS Web - Control de Acceso',
       debugShowCheckedModeBanner: false,
+      locale: lang.locale,
       themeMode: ThemeMode.dark,
       // ── Dark Theme (mirrors mobile_app) ────────────────────
       darkTheme: ThemeData(
