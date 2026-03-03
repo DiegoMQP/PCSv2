@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
+import '../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
                  if (!portOpen) {
                      setState(() => _showServerFailUI = true);
                  } else {
-                     setState(() => _errorMessage = "Servicio no disponible temporalmente.");
+                     setState(() => _errorMessage = context.trStatic('service_unavailable'));
                  }
             }
         } else {
@@ -112,14 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                         const Icon(Icons.dns, size: 80, color: Colors.redAccent),
                         const SizedBox(height: 20),
-                        const Text("Error en el servidor", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                        Text(context.tr('server_error_title'), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 10),
-                        const Text("No se pudo establecer conexión con el sistema.", style: TextStyle(color: Colors.grey)),
+                        Text(context.tr('server_error_desc'), style: const TextStyle(color: Colors.grey)),
                         const SizedBox(height: 30),
                         ElevatedButton.icon(
                             onPressed: _retryConnection,
                             icon: const Icon(Icons.refresh),
-                            label: const Text("Reintentar"),
+                            label: Text(context.tr('retry')),
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: Colors.black,
@@ -148,17 +148,9 @@ class _LoginScreenState extends State<LoginScreen> {
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: [
                        Consumer<UserProvider>(builder: (context, user, _) {return const SizedBox();}), // Dummy to avoid lint errors if needed or remove
-                       //const Icon(Icons.shield, size: 100, color: Color(0xFF0A84FF)), // Blue Icon
-                       SvgPicture.asset(
-                         "assets/images/logo.svg", 
-                         width: 120, 
-                         height: 120,
-                         fit: BoxFit.contain
-                       ),
-                       const SizedBox(height: 20),
-                       const Text("PCS Security", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                       const Text("PCS Security", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 2)),
                        const SizedBox(height: 10),
-                       const Text("Control de Acceso Seguro", style: TextStyle(color: Colors.grey, fontSize: 18))
+                       Text(context.tr('secure_access'), style: const TextStyle(color: Colors.grey, fontSize: 18))
                      ],
                    ),
                  ),
@@ -197,40 +189,29 @@ class _LoginScreenState extends State<LoginScreen> {
               if (MediaQuery.of(context).size.width <= 900) ...[
           FadeInDown(
             duration: const Duration(milliseconds: 800),
-            child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    )
-                  ]
-                ),
-                child: Padding(
-                   padding: const EdgeInsets.all(12.0),
-                   child: SvgPicture.asset("assets/images/logo.svg", colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
-                ),
-                // child: const Icon(Icons.shield, color: Colors.white, size: 40),
+            child: Text(
+              "PCS Security",
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: Theme.of(context).primaryColor,
+              ),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 16),
         ],
         FadeInUp(
           delay: const Duration(milliseconds: 200),
           child: const Text(
-            "Bienvenido",
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            context.tr('welcome'),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
           ),
         ),
         FadeInUp(
           delay: const Duration(milliseconds: 300),
           child: Text(
-            "Ingresa para continuar",
+            context.tr('sign_in'),
             style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
         ),
@@ -271,15 +252,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     onChanged: (_) => _checkInputs(),
                     style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-                    decoration: const InputDecoration(
-                      hintText: "Correo Electrónico",
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: context.tr('email_hint'),
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(20),
+                      contentPadding: const EdgeInsets.all(20),
                     ),
                     validator: (value) {
-                        if (value == null || value.isEmpty) return 'Requerido';
-                        if (!value.contains('@')) return 'Email inválido';
+                        if (value == null || value.isEmpty) return context.trStatic('required');
+                        if (!value.contains('@')) return context.trStatic('invalid_email');
                         return null;
                     },
                   ),
@@ -298,11 +279,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: true,
                     onChanged: (_) => _checkInputs(),
                     style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-                    decoration: const InputDecoration(
-                      hintText: "Contraseña",
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: context.tr('password'),
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(20),
+                      contentPadding: const EdgeInsets.all(20),
                     ),
                   ),
                 ),
@@ -330,7 +311,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
+                  child: Text(context.tr('login_btn'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.white)),
                 ),
               ),
             ),

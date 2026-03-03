@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
+import '../l10n/app_localizations.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,12 +31,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    // Icon(Icons.shield, size: 50, color: Theme.of(context).colorScheme.primary),
-                    SvgPicture.asset("assets/images/logo.svg", width: 80, height: 80, colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn)),
+                    const Text(
+                      "PCS Security",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+                    ),
                     const SizedBox(height: 40),
-                    ListTile(leading: const Icon(Icons.home), title: const Text("Inicio"), selected: _currentIndex == 0, onTap: () {}),
-                    ListTile(leading: const Icon(Icons.notifications), title: const Text("Alertas"), selected: _currentIndex == 1, onTap: () => Navigator.pushNamed(context, '/alerts')),
-                    ListTile(leading: const Icon(Icons.person), title: const Text("Perfil"), selected: _currentIndex == 2, onTap: () => Navigator.pushNamed(context, '/profile')),
+                    ListTile(leading: const Icon(Icons.home), title: Text(context.tr('home')), selected: _currentIndex == 0, onTap: () {}),
+                    ListTile(leading: const Icon(Icons.notifications), title: Text(context.tr('alerts')), selected: _currentIndex == 1, onTap: () => Navigator.pushNamed(context, '/alerts')),
+                    ListTile(leading: const Icon(Icons.person), title: Text(context.tr('profile')), selected: _currentIndex == 2, onTap: () => Navigator.pushNamed(context, '/profile')),
                   ],
                 ),
               ),
@@ -51,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 30),
                       _buildStatsCard(context),
                       const SizedBox(height: 30),
-                      Text("Acciones Rápidas", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color)),
+                      Text(context.tr('quick_actions'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.titleLarge?.color)),
                       const SizedBox(height: 20),
                       GridView.count(
                         shrinkWrap: true,
@@ -124,10 +126,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           selectedItemColor: Theme.of(context).colorScheme.primary,
           unselectedItemColor: Colors.grey,
           type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.home)), label: "Inicio"),
-            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.notifications)), label: "Alertas"),
-            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.person)), label: "Perfil"),
+          items: [
+            BottomNavigationBarItem(icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(Icons.home)), label: context.tr('home')),
+            BottomNavigationBarItem(icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(Icons.notifications)), label: context.tr('alerts')),
+            BottomNavigationBarItem(icon: Padding(padding: const EdgeInsets.only(bottom: 4), child: Icon(Icons.person)), label: context.tr('profile')),
           ],
         ),
       ),
@@ -142,8 +144,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               FadeInDown(
-                child: const Text("Bienvenido de nuevo,", 
-                  style: TextStyle(fontSize: 16, color: Colors.grey)),
+                child: Text(context.tr('welcome_back'), 
+                  style: const TextStyle(fontSize: 16, color: Colors.grey)),
               ),
               const SizedBox(height: 5),
               FadeInDown(
@@ -170,9 +172,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-          FadeInDown(
-             child: SvgPicture.asset("assets/images/logo.svg", width: 45, height: 45),
-          )
         ],
       );
   }
@@ -194,10 +193,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         child: Column(
             children: [
-            const Text("Visitas Activas", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+            Text(context.tr('active_visits'), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
             const SizedBox(height: 10),
             Text("0", style: TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary)),
-            const Text("Total hoy", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(context.tr('total_today'), style: const TextStyle(color: Colors.grey, fontSize: 13)),
             ],
         ),
         ),
@@ -209,32 +208,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return [
         _buildActionBtn(
             icon: Icons.person_add, 
-            label: "Nueva Visita", 
+            label: context.tr('guest_access'), 
             color: Theme.of(context).colorScheme.primary,
             onTap: () => Navigator.pushNamed(context, '/guest'),
         ),
         _buildActionBtn(
             icon: Icons.history, 
-            label: "Historial", 
-            color: Colors.green, // Keep distinctive color
+            label: context.tr('history'), 
+            color: Colors.green,
             onTap: () => Navigator.pushNamed(context, '/logs'),
         ),
         _buildActionBtn(
             icon: Icons.qr_code, 
-            label: "Mis Códigos", 
+            label: context.tr('my_codes'), 
             color: Colors.orange,
             onTap: () => Navigator.pushNamed(context, '/codes'),
         ),
         _buildActionBtn(
             icon: Icons.settings, 
-            label: "Ajustes", 
+            label: context.tr('profile'), 
             color: Colors.purple,
             onTap: () => Navigator.pushNamed(context, '/profile'), 
         ),
         if (user.isMainAdmin)
           _buildActionBtn(
             icon: Icons.manage_accounts,
-            label: "Usuarios",
+            label: context.tr('admin'),
             color: const Color(0xFFFF3B30),
             onTap: () => Navigator.pushNamed(context, '/admin_users'),
           ),
