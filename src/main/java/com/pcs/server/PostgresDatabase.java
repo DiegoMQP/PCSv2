@@ -28,9 +28,12 @@ public class PostgresDatabase {
                     : dbUrl.replace("postgresql://", "jdbc:postgresql://");
 
             // Append sslmode if not already in URL
-            // Public Railway proxy requires SSL; internal does not but accepts it
+            // Internal Railway network (railway.internal) does not use SSL
+            // Public proxy requires SSL
             if (!jdbcUrl.contains("sslmode")) {
-                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=require";
+                boolean isInternal = jdbcUrl.contains("railway.internal");
+                String sslMode = isInternal ? "disable" : "require";
+                jdbcUrl += (jdbcUrl.contains("?") ? "&" : "?") + "sslmode=" + sslMode;
             }
 
             HikariConfig config = new HikariConfig();
