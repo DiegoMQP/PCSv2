@@ -205,6 +205,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<Widget> _buildGridChildren(BuildContext context) {
+      final user = Provider.of<UserProvider>(context, listen: false);
       return [
         _buildActionBtn(
             icon: Icons.person_add, 
@@ -230,6 +231,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: Colors.purple,
             onTap: () => Navigator.pushNamed(context, '/profile'), 
         ),
+        if (user.isMainAdmin)
+          _buildActionBtn(
+            icon: Icons.manage_accounts,
+            label: "Usuarios",
+            color: const Color(0xFFFF3B30),
+            onTap: () => Navigator.pushNamed(context, '/admin_users'),
+          ),
       ];
   }
 

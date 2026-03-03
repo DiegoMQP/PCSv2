@@ -51,10 +51,14 @@ class _LoginScreenState extends State<LoginScreen> {
         
         if (data != null && data.containsKey('username')) {
             final username = data['username'];
-            final name = data['name']; 
+            final name = data['name'];
+            final location = data['location'];
+            final role = data['role'];
             Provider.of<UserProvider>(context, listen: false).setUser(
-              username, 
-              name: name
+              username,
+              name: name?.toString(),
+              location: location?.toString(),
+              role: role?.toString(),
             );
         } else {
             Provider.of<UserProvider>(context, listen: false).setUser(_emailController.text);

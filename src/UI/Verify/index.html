@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCS – Verificador de Códigos</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --border: #2a2a38;
+      --primary: #4f80ff;
+      --success: #30d158;
+      --danger:  #ff453a;
+      --text:    #ffffff;
+      --muted:   #8e8e9a;
+      --digit-bg: #222230;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .header .logo {
+      width: 60px; height: 60px;
+      background: linear-gradient(135deg, var(--primary), #2255dd);
+      border-radius: 18px;
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+    }
+    .header .logo svg { width: 30px; height: 30px; fill: #fff; }
+    .header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    .header p  { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    /* ── Code display ── */
+    .code-display {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .code-box {
+      width: 44px; height: 52px;
+      background: var(--digit-bg);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 700;
+      transition: border-color 0.15s, transform 0.1s;
+    }
+    .code-box.filled  { border-color: var(--primary); }
+    .code-box.active  { border-color: var(--primary); transform: scale(1.06); }
+
+    /* ── Result ── */
+    .result {
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .result.success {
+      display: block;
+      background: rgba(48,209,88,0.12);
+      border: 1px solid rgba(48,209,88,0.35);
+      color: var(--success);
+    }
+    .result.error {
+      display: block;
+      background: rgba(255,69,58,0.12);
+      border: 1px solid rgba(255,69,58,0.35);
+      color: var(--danger);
+    }
+    .result .result-title {
+      font-weight: 700; font-size: 15px; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .result .result-row { margin-top: 4px; color: inherit; opacity: 0.85; }
+    .result .result-row span { font-weight: 600; opacity: 1; }
+
+    /* ── Numpad ── */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .key {
+      background: var(--digit-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      height: 58px;
+      font-size: 22px; font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s, transform 0.1s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .key:active, .key.pressed { background: #2e2e40; transform: scale(0.94); }
+    .key.special { font-size: 15px; color: var(--muted); }
+    .key.clear-btn { color: var(--danger); }
+    .key.verify-btn {
+      grid-column: 1 / -1;
+      background: var(--primary);
+      border-color: transparent;
+      font-size: 15px; font-weight: 700; letter-spacing: 0.3px;
+      color: #fff; height: 52px; margin-top: 2px;
+    }
+    .key.verify-btn:active { background: #3a6ae0; }
+    .key.verify-btn.loading {
+      opacity: 0.6; cursor: not-allowed; pointer-events: none;
+    }
+
+    /* ── Settings ── */
+    .settings-btn {
+      display: flex; align-items: center; gap: 6px;
+      margin: 0 auto 20px;
+      background: none; border: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+      padding: 6px 14px; border-radius: 20px; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .settings-btn:hover { color: var(--text); border-color: var(--text); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%; max-width: 340px;
+    }
+    .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .modal label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .modal input {
+      width: 100%; background: var(--digit-bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 14px;
+      padding: 10px 12px; outline: none;
+    }
+    .modal input:focus { border-color: var(--primary); }
+    .modal .modal-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+    .modal-actions button {
+      flex: 1; height: 42px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer; border: none;
+    }
+    .btn-cancel { background: var(--digit-bg); color: var(--muted); }
+    .btn-save   { background: var(--primary);  color: #fff; }
+
+    /* ── Loading spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    /* ── Server status dot ── */
+    .status-bar {
+      display: flex; align-items: center; gap: 6px;
+      justify-content: center;
+      font-size: 12px; color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted);
+    }
+    .dot.online  { background: var(--success); }
+    .dot.offline { background: var(--danger);  }
+  </style>
+</head>
+<body>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>⚙ Configuración del Servidor</h2>
+    <label>URL del servidor (sin barra al final)</label>
+    <input type="url" id="serverInput" placeholder="https://mi-servidor.com" autocomplete="off" />
+    <p class="modal-hint">Ejemplo: https://prefectural-zula-nonforensically.ngrok-free.dev</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-save"   onclick="saveServer()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1z"/>
+    </svg>
+  </div>
+  <h1>PCS – Verificador</h1>
+  <p>Verifica el código de acceso</p>
+</div>
+
+<!-- Status & settings -->
+<div class="status-bar">
+  <span class="dot" id="statusDot"></span>
+  <span id="statusText">Comprobando servidor…</span>
+</div>
+
+<button class="settings-btn" onclick="openModal()">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a6.96 6.96 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zm-7.14 2.56a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+  </svg>
+  Servidor
+</button>
+
+<!-- Main card -->
+<div class="card">
+  <!-- Code display -->
+  <div class="code-display" id="codeDisplay"></div>
+
+  <!-- Result -->
+  <div class="result" id="result">
+    <div class="result-title" id="resultTitle"></div>
+    <div id="resultBody"></div>
+  </div>
+
+  <!-- Numpad -->
+  <div class="numpad" id="numpad">
+    <button class="key" onclick="pressKey('1')">1</button>
+    <button class="key" onclick="pressKey('2')">2</button>
+    <button class="key" onclick="pressKey('3')">3</button>
+    <button class="key" onclick="pressKey('4')">4</button>
+    <button class="key" onclick="pressKey('5')">5</button>
+    <button class="key" onclick="pressKey('6')">6</button>
+    <button class="key" onclick="pressKey('7')">7</button>
+    <button class="key" onclick="pressKey('8')">8</button>
+    <button class="key" onclick="pressKey('9')">9</button>
+    <button class="key special clear-btn" onclick="clearCode()">✕</button>
+    <button class="key" onclick="pressKey('0')">0</button>
+    <button class="key special" onclick="deleteKey()">⌫</button>
+    <button class="key verify-btn" id="verifyBtn" onclick="verify()">Verificar Código</button>
+  </div>
+</div>
+
+<script>
+  const MAX_LEN = 6;
+  let code = '';
+  let loading = false;
+
+  // ── Server URL ────────────────────────────────────────────────
+  function getServer() {
+    const param = new URLSearchParams(window.location.search).get('server');
+    return param || localStorage.getItem('pcs_server') || '';
+  }
+
+  function openModal() {
+    document.getElementById('serverInput').value = getServer();
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function saveServer() {
+    const val = document.getElementById('serverInput').value.trim().replace(/\/$/, '');
+    localStorage.setItem('pcs_server', val);
+    closeModal();
+    checkHealth();
+  }
+
+  // ── Health check ─────────────────────────────────────────────
+  async function checkHealth() {
+    const dot  = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    const srv  = getServer();
+    if (!srv) {
+      dot.className = 'dot offline';
+      text.textContent = 'Servidor no configurado';
+      return;
+    }
+    dot.className = 'dot';
+    text.textContent = 'Comprobando servidor…';
+    try {
+      const r = await fetch(`${srv}/health`, { signal: AbortSignal.timeout(4000) });
+      if (r.ok) {
+        dot.className  = 'dot online';
+        text.textContent = 'Servidor en línea';
+      } else {
+        dot.className  = 'dot offline';
+        text.textContent = 'Servidor no disponible';
+      }
+    } catch {
+      dot.className  = 'dot offline';
+      text.textContent = 'Sin conexión al servidor';
+    }
+  }
+
+  // ── Code display ─────────────────────────────────────────────
+  function renderDisplay() {
+    const container = document.getElementById('codeDisplay');
+    container.innerHTML = '';
+    for (let i = 0; i < MAX_LEN; i++) {
+      const box = document.createElement('div');
+      box.className = 'code-box';
+      if (i < code.length) {
+        box.textContent = code[i];
+        box.classList.add('filled');
+      }
+      if (i === code.length) box.classList.add('active');
+      container.appendChild(box);
+    }
+  }
+
+  // ── Input ─────────────────────────────────────────────────────
+  function pressKey(d) {
+    if (loading || code.length >= MAX_LEN) return;
+    code += d;
+    clearResult();
+    renderDisplay();
+    if (code.length === MAX_LEN) verify();
+  }
+
+  function deleteKey() {
+    if (loading) return;
+    code = code.slice(0, -1);
+    clearResult();
+    renderDisplay();
+  }
+
+  function clearCode() {
+    if (loading) return;
+    code = '';
+    clearResult();
+    renderDisplay();
+  }
+
+  function clearResult() {
+    const el = document.getElementById('result');
+    el.className = 'result';
+  }
+
+  // ── Verify ───────────────────────────────────────────────────
+  async function verify() {
+    if (loading) return;
+    const srv = getServer();
+    if (!srv) {
+      openModal();
+      return;
+    }
+    if (code.length < MAX_LEN) {
+      showError('⚠', `Faltan ${MAX_LEN - code.length} dígito(s)`, '');
+      return;
+    }
+
+    setLoading(true);
+    clearResult();
+
+    try {
+      const r = await fetch(`${srv}/verify?code=${encodeURIComponent(code)}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = r.ok ? await r.json().catch(() => ({})) : null;
+
+      if (r.status === 200 && data?.valid) {
+        const source = data.source === 'guest' ? 'Visita' : 'Personal';
+        const lines = [];
+        if (data.name)          lines.push(`Nombre: <span>${data.name}</span>`);
+        if (data.host_username) lines.push(`Anfitrión: <span>${data.host_username}</span>`);
+        if (data.access_type)   lines.push(`Acceso: <span>${data.access_type}</span>`);
+        showSuccess('✓ Acceso permitido', `Tipo: <span>${source}</span>`, lines);
+        flashScreen('success');
+      } else {
+        const msg = data?.message || 'Código inválido o expirado';
+        showError('✗ Acceso denegado', msg, []);
+        flashScreen('error');
+      }
+    } catch (err) {
+      showError('⚠ Error de conexión', 'No se pudo contactar al servidor.' , []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showSuccess(title, firstLine, extraLines) {
+    const el = document.getElementById('result');
+    el.className = 'result success';
+    document.getElementById('resultTitle').innerHTML = title;
+    document.getElementById('resultBody').innerHTML =
+      `<div class="result-row">${firstLine}</div>` +
+      extraLines.map(l => `<div class="result-row">${l}</div>`).join('');
+  }
+
+  function showError(title, msg, lines) {
+    const el = document.getElementById('result');
+    el.className = 'result error';
+    document.getElementById('resultTitle').innerHTML = title;
+    document.getElementById('resultBody').innerHTML =
+      `<div class="result-row">${msg}</div>` +
+      (Array.isArray(lines) ? lines.map(l => `<div class="result-row">${l}</div>`).join('') : '');
+  }
+
+  function setLoading(val) {
+    loading = val;
+    const btn = document.getElementById('verifyBtn');
+    btn.className = val ? 'key verify-btn loading' : 'key verify-btn';
+    btn.innerHTML = val
+      ? '<div class="spinner"></div>'
+      : 'Verificar Código';
+  }
+
+  // ── Visual feedback flash ─────────────────────────────────────
+  function flashScreen(type) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText =
+      `position:fixed;inset:0;pointer-events:none;z-index:9999;
+       background:${type === 'success' ? 'rgba(48,209,88,0.12)' : 'rgba(255,69,58,0.12)'};
+       animation:fadeOut 0.6s forwards;`;
+    document.head.insertAdjacentHTML('beforeend',
+      '<style>@keyframes fadeOut{from{opacity:1}to{opacity:0}}</style>');
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 650);
+  }
+
+  // ── Keyboard support ─────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('modalOverlay').classList.contains('open')) return;
+    if (e.key >= '0' && e.key <= '9') { pressKey(e.key); return; }
+    if (e.key === 'Backspace') deleteKey();
+    if (e.key === 'Escape')   clearCode();
+    if (e.key === 'Enter')    verify();
+  });
+
+  // ── Init ─────────────────────────────────────────────────────
+  renderDisplay();
+  checkHealth();
+  if (!getServer()) openModal();
+</script>
+</body>
+</html>

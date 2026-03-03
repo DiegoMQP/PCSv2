@@ -11,6 +11,7 @@ import 'screens/logs_screen.dart';
 import 'screens/codes_screen.dart';
 import 'screens/alerts_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/admin_users_screen.dart';
 
 void main() {
   runApp(
@@ -87,6 +88,7 @@ class MyApp extends StatelessWidget {
             '/codes': (context) => const CodesScreen(),
             '/alerts': (context) => const AlertsScreen(),
             '/profile': (context) => const ProfileScreen(),
+            '/admin_users': (context) => const AdminUsersScreen(),
           },
         );
       }

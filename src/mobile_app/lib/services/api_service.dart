@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // Determine Base URL dynamically
   static String get baseUrl {
-    return 'https://pseudoacademically-crenelated-patti.ngrok-free.dev';
+    return 'https://prefectural-zula-nonforensically.ngrok-free.dev';
   }
   
   static final ApiService _instance = ApiService._internal();
@@ -211,7 +211,8 @@ class ApiService {
 
       print('Save Code status: ${response.statusCode}');
 
-      if (response.statusCode == 201) {
+      // Accept any 2xx (200 or 201) — Javalin ctx.json() defaults to 200
+      if (response.statusCode >= 200 && response.statusCode < 300) {
          return {'success': true, 'message': response.body};
       } else {
          return {'success': false, 'message': response.body};
@@ -230,6 +231,42 @@ class ApiService {
     } catch (e) {
       print('Delete Code error: $e');
       return false;
+    }
+  }
+
+  Future<bool> updateCodeDuration(String code, String duration) async {
+    final url = Uri.parse('$baseUrl/codes?code=$code');
+    try {
+      final response = await http.put(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'duration': duration}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Update Code Duration error: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyCode(String code) async {
+    final url = Uri.parse('$baseUrl/verify?code=$code');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        try {
+          return jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (_) {
+          return {'valid': true, 'message': response.body};
+        }
+      } else if (response.statusCode == 404) {
+        return {'valid': false, 'message': 'Codigo inválido o expirado'};
+      } else {
+        return {'valid': false, 'message': response.body};
+      }
+    } catch (e) {
+      print('Verify Code error: $e');
+      return {'valid': false, 'message': 'Error de conexión'};
     }
   }
 
@@ -253,8 +290,13 @@ class ApiService {
             })
          );
          
-         if (response.statusCode == 201) {
-             return {'success': true, 'message': response.body};
+         if (response.statusCode >= 200 && response.statusCode < 300) {
+             try {
+               final data = jsonDecode(response.body) as Map<String, dynamic>;
+               return {'success': true, 'data': data};
+             } catch (_) {
+               return {'success': true, 'data': <String, dynamic>{}};
+             }
          } else {
              return {'success': false, 'message': response.body};
          }
@@ -262,5 +304,78 @@ class ApiService {
          print('Create Guest error: $e');
          return {'success': false, 'message': 'Connection error: $e'};
      }
+  }
+
+  // ─── Admin Users ────────────────────────────────────────
+  Future<List<dynamic>> getUsers() async {
+    try {
+      final r = await http.get(Uri.parse('$baseUrl/admin/users'));
+      if (r.statusCode == 200) return jsonDecode(r.body);
+    } catch (e) {
+      print('getUsers error: $e');
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>> createUser({
+    required String username,
+    required String password,
+    required String name,
+    required String location,
+    String role = 'user',
+  }) async {
+    try {
+      final r = await http.post(
+        Uri.parse('$baseUrl/admin/users'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+          'name': name,
+          'location': location,
+          'role': role,
+        }),
+      );
+      if (r.statusCode == 201) return {'success': true, 'data': jsonDecode(r.body)};
+      return {'success': false, 'message': r.body};
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<Map<String, dynamic>> updateUser({
+    required String username,
+    String? newUsername,
+    String? password,
+    String? name,
+    String? location,
+    String? role,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (newUsername != null && newUsername.isNotEmpty) body['new_username'] = newUsername;
+      if (password   != null && password.isNotEmpty)    body['password']     = password;
+      if (name       != null && name.isNotEmpty)        body['name']         = name;
+      if (location   != null)                           body['location']     = location;
+      if (role       != null)                           body['role']         = role;
+      final r = await http.put(
+        Uri.parse('$baseUrl/admin/users?username=$username'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(body),
+      );
+      if (r.statusCode == 200) return {'success': true};
+      return {'success': false, 'message': r.body};
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
+    }
+  }
+
+  Future<bool> deleteUser(String username) async {
+    try {
+      final r = await http.delete(Uri.parse('$baseUrl/admin/users?username=$username'));
+      return r.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 }

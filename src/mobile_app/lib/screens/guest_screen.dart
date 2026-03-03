@@ -1,7 +1,9 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/user_provider.dart';
+import '../widgets/qr_card_widget.dart';
 
 class GuestScreen extends StatefulWidget {
   const GuestScreen({super.key});
@@ -17,9 +19,10 @@ class _GuestScreenState extends State<GuestScreen> {
   
   String _accessType = 'Tiempo'; // Options: Tiempo, Permanente, Un uso, Limite
   String _selectedDuration = '4h';
-  
+
   bool _showSuccess = false;
   String _generatedCode = '';
+  Map<String, dynamic> _generatedCodeData = {};
 
   // Camera stubs - in real app initialize CameraController
   bool _isCameraOpen = false;
@@ -52,8 +55,35 @@ class _GuestScreenState extends State<GuestScreen> {
 
     if (mounted) {
         if (result['success']) {
+            // Extract generated_code from the parsed server response
+            final data = (result['data'] as Map<String, dynamic>?) ?? {};
+            String code = data['generated_code']?.toString() ?? '';
+            if (code.isEmpty) {
+              code = (100000 + Random().nextInt(900000)).toString();
+            }
+            // Calculate expires_at for display (mirrors server logic)
+            int? expiresAt;
+            if (_accessType == 'Tiempo') {
+              final durations = {'30m': 30, '4h': 240, '12h': 720, '24h': 1440};
+              final mins = durations[_selectedDuration] ?? 240;
+              expiresAt = DateTime.now().millisecondsSinceEpoch + (mins * 60 * 1000);
+            } else if (_accessType == 'Limite' || _accessType == 'Un uso') {
+              expiresAt = DateTime.now().millisecondsSinceEpoch + (24 * 60 * 60 * 1000);
+            }
+            // Also persist to fractionation_codes so it shows in "Mis Códigos"
+            ApiService().saveCode(
+              name: _nameController.text,
+              code: code,
+              username: user.username,
+              duration: finalConfigs,
+            );
             setState(() {
-                _generatedCode = (1000 + (DateTime.now().millisecond % 9000)).toString(); // Just for display, real ID is in DB
+                _generatedCode = code;
+                _generatedCodeData = {
+                  'code': code,
+                  'name': _nameController.text,
+                  'expires_at': expiresAt,
+                };
                 _showSuccess = true;
             });
         } else {
@@ -242,37 +272,80 @@ class _GuestScreenState extends State<GuestScreen> {
   }
 
   Widget _buildSuccessScreen() {
-      return Scaffold(
-          body: Center(
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                      Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: const BoxDecoration(
-                              color: Color(0xFF34C759),
-                              shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.check, color: Colors.white, size: 40),
-                      ),
-                      const SizedBox(height: 20),
-                      const Text("Acceso Creado", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 20),
-                      Text(_generatedCode, style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, letterSpacing: 5)),
-                      const SizedBox(height: 10),
-                      Text("Comparte este código con tu visita", style: TextStyle(color: Colors.grey[600])),
-                      const SizedBox(height: 40),
-                      MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Volver al Inicio"),
-                        ),
-                      )
-                  ],
-              ),
-          ),
-      );
+    final cardKey = GlobalKey();
+    final user = Provider.of<UserProvider>(context, listen: false);
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('¡Acceso Creado!'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            // Success badge
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: const BoxDecoration(
+                  color: Color(0xFF34C759), shape: BoxShape.circle),
+              child: const Icon(Icons.check_rounded,
+                  color: Colors.white, size: 38),
+            ),
+            const SizedBox(height: 14),
+            const Text('¡Visita registrada!',
+                style:
+                    TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Comparte el código con tu visita',
+                style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+            const SizedBox(height: 28),
+            // QR Card
+            RepaintBoundary(
+              key: cardKey,
+              child: QrCardWidget(
+                  codeData: _generatedCodeData, user: user),
+            ),
+            const SizedBox(height: 28),
+            // Action buttons
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A73E8),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 13),
+                  ),
+                  icon: const Icon(Icons.share),
+                  label: const Text('Compartir Código'),
+                  onPressed: () =>
+                      captureAndShare(cardKey, _generatedCode, context),
+                ),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 22, vertical: 13),
+                  ),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copiar Código'),
+                  onPressed: () => copyCode(_generatedCode, context),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.home_outlined),
+                  label: const Text('Volver al Inicio'),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 
   Widget _buildCameraOverlay() {

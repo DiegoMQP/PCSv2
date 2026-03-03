@@ -12,13 +12,17 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Base64;
 
+import com.pcs.server.CloudinaryService;
+
 public class GuestService {
     private final Firestore db;
     private final byte[] keyBytes;
+    private final CloudinaryService cloudinary;
 
-    public GuestService(Firestore db, byte[] keyBytes) {
+    public GuestService(Firestore db, byte[] keyBytes, CloudinaryService cloudinary) {
         this.db = db;
         this.keyBytes = keyBytes;
+        this.cloudinary = cloudinary;
     }
 
     public Map<String, Object> createGuest(Map<String, Object> body) throws Exception {
@@ -62,12 +66,16 @@ public class GuestService {
 
         String rawCode = String.format("%06d", new Random().nextInt(999999));
         body.put("encrypted_code", encrypt(rawCode));
+        // Generate QR image and upload to Cloudinary
+        String qrUrl = cloudinary.generateAndUpload(rawCode, "guest_" + rawCode + "_" + System.currentTimeMillis());
+        if (qrUrl != null) body.put("qr_url", qrUrl);
 
         ApiFuture<DocumentReference> future = db.collection("guests").add(body);
         DocumentReference ref = future.get();
 
         Map<String, Object> respMap = new HashMap<>(body);
         respMap.put("generated_code", rawCode);
+        respMap.put("qr_url", qrUrl);
         respMap.put("id", ref.getId());
         return respMap;
     }

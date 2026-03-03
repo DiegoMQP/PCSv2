@@ -104,3 +104,7 @@ src/mobile_app/.pub/
 src/mobile_app/ios/.generated/
 src/mobile_app/android/.gradle
 src/mobile_app/android/local.properties
+
+src/main/Server/openJdk-25/
+
+src/main/Server/*.json
