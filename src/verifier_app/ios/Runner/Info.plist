@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>PCS Verificador necesita la cámara para escanear códigos QR de acceso.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>PCS Verificador usa la cámara para escanear códigos QR.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

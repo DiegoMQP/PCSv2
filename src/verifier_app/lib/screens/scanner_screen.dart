@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/api_service.dart';
@@ -55,6 +56,10 @@ class _ScannerScreenState extends State<ScannerScreen>
   // Online status
   bool _online = true;
 
+  // Camera permission
+  bool _permissionGranted = false;
+  bool _permissionDeniedForever = false;
+
   // Animation
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseAnim;
@@ -70,6 +75,27 @@ class _ScannerScreenState extends State<ScannerScreen>
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
     _checkOnline();
+    _requestCameraPermission();
+  }
+
+  Future<void> _requestCameraPermission() async {
+    var status = await Permission.camera.status;
+    if (status.isGranted) {
+      if (mounted) setState(() => _permissionGranted = true);
+      return;
+    }
+    if (status.isPermanentlyDenied) {
+      if (mounted) setState(() => _permissionDeniedForever = true);
+      return;
+    }
+    // Request
+    status = await Permission.camera.request();
+    if (mounted) {
+      setState(() {
+        _permissionGranted = status.isGranted;
+        _permissionDeniedForever = status.isPermanentlyDenied;
+      });
+    }
   }
 
   Future<void> _checkOnline() async {
@@ -208,6 +234,83 @@ class _ScannerScreenState extends State<ScannerScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // ── Sin permiso de cámara ──────────────────────────────
+    if (!_permissionGranted) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(36),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _permissionDeniedForever
+                        ? Icons.no_photography_rounded
+                        : Icons.camera_alt_rounded,
+                    size: 80,
+                    color: theme.colorScheme.primary.withOpacity(0.6),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _permissionDeniedForever
+                        ? 'Permiso de cámara denegado'
+                        : 'Se necesita acceso a la cámara',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _permissionDeniedForever
+                        ? 'Ve a Ajustes → PCS Verificador → Permisos y activa la Cámara.'
+                        : 'Para escanear códigos QR la app necesita acceso a tu cámara.',
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: Icon(
+                      _permissionDeniedForever
+                          ? Icons.settings_rounded
+                          : Icons.camera_alt_rounded,
+                      size: 20,
+                    ),
+                    label: Text(_permissionDeniedForever
+                        ? 'Abrir Ajustes'
+                        : 'Conceder Permiso'),
+                    onPressed: () async {
+                      if (_permissionDeniedForever) {
+                        await openAppSettings();
+                      } else {
+                        await _requestCameraPermission();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: theme.scaffoldBackgroundColor,
