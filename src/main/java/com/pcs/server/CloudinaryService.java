@@ -17,7 +17,7 @@ public class CloudinaryService {
     private final Cloudinary cloudinary;
 
     public CloudinaryService() {
-        String cloudName = System.getenv().getOrDefault("CLOUDINARY_CLOUD_NAME", "pcs");
+        String cloudName = System.getenv().getOrDefault("CLOUDINARY_CLOUD_NAME", "dqupf0krm");
         String apiKey    = System.getenv().getOrDefault("CLOUDINARY_API_KEY",    "653746155777456");
         String apiSecret = System.getenv().getOrDefault("CLOUDINARY_API_SECRET", "y2GPBVa5lBBxUZ4d1r6MO2fE5gE");
 
