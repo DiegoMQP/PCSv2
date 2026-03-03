@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/user_provider.dart';
 
 // ─────────────────────────────────────────────
@@ -13,6 +14,9 @@ import '../providers/user_provider.dart';
 // ─────────────────────────────────────────────
 Future<void> captureAndShare(
     GlobalKey key, String code, BuildContext context) async {
+  final shareText = context.trStatic('share_text') + code;
+  final shareSubject = context.trStatic('share_subject');
+  final shareError = context.trStatic('share_error');
   try {
     final boundary =
         key.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -25,14 +29,14 @@ Future<void> captureAndShare(
     await file.writeAsBytes(bytes);
     await Share.shareXFiles(
       [XFile(file.path)],
-      text: 'Mi código de acceso PCS: $code',
-      subject: 'Código de Acceso PCS',
+      text: shareText,
+      subject: shareSubject,
     );
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error al compartir la imagen'),
+        SnackBar(
+            content: Text(shareError),
             backgroundColor: Colors.red),
       );
     }
@@ -46,8 +50,8 @@ Future<void> copyCode(String code, BuildContext context) async {
   await Clipboard.setData(ClipboardData(text: code));
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Código copiado al portapapeles'),
+      SnackBar(
+          content: Text(context.trStatic('code_copied')),
           backgroundColor: Colors.green),
     );
   }
@@ -67,14 +71,14 @@ class QrCardWidget extends StatelessWidget {
     final code = codeData['code']?.toString() ?? '';
     final name = codeData['name']?.toString() ?? 'Codigo';
     final location =
-        user.location.isNotEmpty ? user.location : 'Residencia';
+        user.location.isNotEmpty ? user.location : context.tr('residence');
     final now = DateTime.now();
     final dateStr =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final dur = codeData['duration']?.toString();
     final isOneUse = dur == '1u';
     final isPermanent = codeData['expires_at'] == null && !isOneUse;
-    final badgeLabel = isOneUse ? '1 SOLO USO' : isPermanent ? 'PERMANENTE' : 'TEMPORAL';
+    final badgeLabel = isOneUse ? context.tr('one_use_badge') : isPermanent ? context.tr('permanent_badge') : context.tr('temporal_badge');
     final badgeColor = isOneUse
         ? const Color(0xFFBF5AF2)
         : isPermanent
@@ -118,38 +122,15 @@ class QrCardWidget extends StatelessWidget {
                   topRight: Radius.circular(23)),
             ),
             child: Column(children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF1A84FF), Color(0xFF0055CC)]),
-                  boxShadow: [
-                    BoxShadow(
-                        color: const Color(0xFF0A84FF).withOpacity(0.55),
-                        blurRadius: 18,
-                        spreadRadius: 2)
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: const Text('PCS',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.5)),
-              ),
-              const SizedBox(height: 8),
               const Text('PCS ACCESS',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 3)),
-              const Text('Control de Acceso Residencial',
+              Text(context.tr('residential_access'),
                   style:
-                      TextStyle(color: Colors.white70, fontSize: 11)),
+                      const TextStyle(color: Colors.white70, fontSize: 11)),
             ]),
           ),
           // QR Image
@@ -229,8 +210,8 @@ class QrCardWidget extends StatelessWidget {
                     color: Colors.white),
               ),
               const SizedBox(height: 4),
-              const Text('CODIGO DE ACCESO',
-                  style: TextStyle(
+              Text(context.tr('access_code_label'),
+                  style: const TextStyle(
                       fontSize: 9,
                       letterSpacing: 3,
                       color: Colors.white38,
